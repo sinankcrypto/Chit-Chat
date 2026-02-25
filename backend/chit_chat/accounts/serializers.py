@@ -1,4 +1,4 @@
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
@@ -62,5 +62,26 @@ class VerifyOTPSerializer(serializers.Serializer):
         if otp_obj.otp != attrs["otp"]:
             raise serializers.ValidationError("Invalid OTP.")
         
+        attrs["user"] = user
+        return attrs
+    
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        try:
+            user = User.objects.get(username=attrs["username"])
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid username.")
+
+        user = authenticate(username=user.username, password=attrs["password"])
+
+        if not user:
+            raise serializers.ValidationError("Invalid credentials.")
+
+        if not user.is_active:
+            raise serializers.ValidationError("Account not verified.")
+
         attrs["user"] = user
         return attrs
