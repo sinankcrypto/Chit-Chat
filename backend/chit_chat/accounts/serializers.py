@@ -8,7 +8,7 @@ from .models import EmailOTP
 User = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
 
     class Meta:
         model = User
@@ -36,7 +36,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             is_active=False,
         )
 
-        otp_obj = EmailOTPRepository.get_or_create_by_user(user)
+        otp_obj,created = EmailOTPRepository.get_or_create_by_user(user)
         otp_obj.generate_otp()
 
         return user
