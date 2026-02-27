@@ -19,7 +19,8 @@ function VerifyOtp() {
         email,
         otp,
       });
-
+      
+      localStorage.setItem("username", res.data.user);
       toast.success("OTP Verified Successfully!");
 
       navigate("/chat");
