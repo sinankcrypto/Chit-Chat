@@ -5,10 +5,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from django.contrib.auth import authenticate
+from django.db.models import Q
+from django.contrib.auth import get_user_model
 
-from .serializers import RegisterSerializer, VerifyOTPSerializer, LoginSerializer
+from .serializers import RegisterSerializer, VerifyOTPSerializer, LoginSerializer, UserSearchSerializer
 from .repository.emailOTP_repository import EmailOTPRepository
 from .utils import send_otp_email
+
+User = get_user_model()
 # Create your views here.
 
 class RegisterView(APIView):
@@ -151,3 +155,22 @@ class ProtectedView(APIView):
             "message": "You are authenticated",
             "user": request.user.username
         })
+    
+class UserSearchView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        query = request.GET.get("q", "").strip()
+
+        if not query:
+            return Response([])
+
+        users = User.objects.filter(
+            Q(username__icontains=query) |
+            Q(email__icontains=query)
+        ).exclude(
+            id=request.user.id
+        )[:10]  # limit results
+
+        serializer = UserSearchSerializer(users, many=True)
+        return Response(serializer.data)
