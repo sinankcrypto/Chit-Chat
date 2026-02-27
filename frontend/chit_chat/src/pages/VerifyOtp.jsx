@@ -15,7 +15,7 @@ function VerifyOtp() {
     e.preventDefault();
 
     try {
-      await API.post("/auth/verify-otp/", {
+      const res = await API.post("/auth/verify-otp/", {
         email,
         otp,
       });

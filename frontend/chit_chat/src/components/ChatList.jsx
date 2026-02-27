@@ -1,22 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
 
-function ChatList({ onSelectChat }) {
-  const [rooms, setRooms] = useState([]);
-
-  useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        const res = await API.get("/chat/rooms/");
-        setRooms(res.data);
-      } catch (err) {
-        console.log(err);
-      }
-    };
-
-    fetchRooms();
-  }, []);
-
+function ChatList({ rooms, onSelectChat  }) {
   return (
     <div className="mt-4 space-y-2">
       {rooms.map((room) => (
