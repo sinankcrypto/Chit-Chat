@@ -27,10 +27,11 @@ function Home() {
     <div className="flex h-screen">
       <Sidebar
         rooms={rooms}
+        selectedChat={selectedChat}
         onSelectChat={setSelectedChat} 
         refreshRooms={fetchRooms}
       />
-      <ChatWindow selectedChat={selectedChat} />
+      <ChatWindow selectedChat={selectedChat} refreshRooms={fetchRooms}/>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useState } from "react";
 import CreateGroupModal from "./CreateGroupModal";
 import API from "../services/api";
 
-function Sidebar({ onSelectChat, refreshRooms, rooms  }) {
+function Sidebar({ selectedChat, onSelectChat, refreshRooms, rooms  }) {
   const [showModal, setShowModal] = useState(false);  
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -82,7 +82,7 @@ function Sidebar({ onSelectChat, refreshRooms, rooms  }) {
       </div>
 
       {/* Chat List */}
-      <ChatList rooms={rooms} onSelectChat={onSelectChat} />
+      <ChatList rooms={rooms} selectedChat={selectedChat} onSelectChat={onSelectChat} />
 
       <button
         onClick={() => setShowModal(true)}

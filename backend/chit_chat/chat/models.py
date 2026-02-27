@@ -54,6 +54,11 @@ class Message(models.Model):
     )
     content = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
+    read_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="read_messages",
+        blank=True
+    )
 
     def __str__(self):
         return f"{self.sender.email} - {self.room.name}"

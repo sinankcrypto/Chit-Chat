@@ -37,9 +37,13 @@ function ChatWindow({ selectedChat }) {
 
     socketRef.current.onopen = () => console.log("Real-time chat connected");
 
-    socketRef.current.onmessage = (event) => {
+    socketRef.current.onmessage = async (event) => {
       const data = JSON.parse(event.data);
+
       setMessages((prev) => [...prev, data]);
+
+      // refresh sidebar data
+      await refreshRooms?.();
     };
 
     socketRef.current.onclose = () => console.log("Chat disconnected");
