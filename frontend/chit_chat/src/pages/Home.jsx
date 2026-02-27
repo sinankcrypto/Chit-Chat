@@ -22,13 +22,20 @@ function Home() {
     fetchRooms();
   }, []); 
 
+  const handleSelectChat = async (room) => {
+    setSelectedChat(room);
+
+    // refetch rooms to update unread_count
+    await fetchRooms();
+  };
+
 
   return (
     <div className="flex h-screen">
       <Sidebar
         rooms={rooms}
         selectedChat={selectedChat}
-        onSelectChat={setSelectedChat} 
+        onSelectChat={handleSelectChat} 
         refreshRooms={fetchRooms}
       />
       <ChatWindow selectedChat={selectedChat} refreshRooms={fetchRooms}/>

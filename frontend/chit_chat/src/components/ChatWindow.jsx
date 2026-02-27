@@ -1,13 +1,15 @@
 import { useEffect, useState, useRef } from "react";
 import API from "../services/api";
+import GroupInfoModal from "./GroupInfoModal";
 
 const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 
-function ChatWindow({ selectedChat }) {
+function ChatWindow({ selectedChat, refreshRooms }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
 
   // Fetch old messages
   useEffect(() => {
@@ -91,8 +93,19 @@ function ChatWindow({ selectedChat }) {
     <div className="flex-1 bg-gray-900 flex flex-col">
       
       {/* Header */}
-      <div className="p-4 border-b border-gray-700 text-white font-semibold">
-        {selectedChat.name? selectedChat.name: selectedChat.display_name}
+      <div className="flex justify-between items-center border-b border-gray-700 p-4">
+        <h2 className="text-xl font-semibold">
+          {selectedChat.display_name}
+        </h2>
+
+        {selectedChat.room_type === "group" && (
+          <button
+            onClick={() => setShowGroupInfo(true)}
+            className="text-sm bg-gray-700 px-3 py-1 rounded hover:bg-gray-600"
+          >
+            Group Info
+          </button>
+        )}
       </div>
 
       {/* Messages */}
@@ -149,7 +162,15 @@ function ChatWindow({ selectedChat }) {
           Send
         </button>
       </div>
+      {showGroupInfo && (
+        <GroupInfoModal
+          room={selectedChat}
+          onClose={() => setShowGroupInfo(false)}
+          refreshRooms={refreshRooms}
+        />
+      )}
     </div>
+
   );
 }
 

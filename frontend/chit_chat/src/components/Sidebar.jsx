@@ -63,7 +63,7 @@ function Sidebar({ selectedChat, onSelectChat, refreshRooms, rooms  }) {
           placeholder="Search users..."
           value={searchTerm}
           onChange={(e) => searchUsers(e.target.value)}
-          className="w-full p-2 rounded bg-gray-700 text-white"
+          className="w-half px-3 py-1.5 text-sm rounded-md bg-gray-700 text-white placeholder-gray-400"
         />
 
         {searchResults.length > 0 && (
