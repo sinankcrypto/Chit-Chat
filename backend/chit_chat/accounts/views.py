@@ -37,7 +37,7 @@ class VerifyOTPView(APIView):
         access_token = refresh.access_token
 
         response = Response(
-            {"message": "Account verified successfully."},
+            {"message": "Account verified successfully.", "user": user.username},
             status=status.HTTP_200_OK,
         )
 
@@ -70,7 +70,7 @@ class LoginView(APIView):
         access_token = refresh.access_token
 
         response = Response(
-            {"message": "Login successful"},
+            {"message": "Login successful", "user": user.username},
             status=status.HTTP_200_OK,
         )
 

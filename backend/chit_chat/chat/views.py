@@ -13,17 +13,28 @@ class ChatRoomView(APIView):
 
     def get(self, request):
         rooms = request.user.chat_rooms.all()
-        serializer = ChatRoomSerializer(rooms, many=True)
+        serializer = ChatRoomSerializer(
+            rooms,
+            many=True,
+            context={"request": request}
+        )
         return Response(serializer.data)
 
     def post(self, request):
-        serializer = ChatRoomSerializer(data=request.data)
+        serializer = ChatRoomSerializer(
+            data=request.data,
+            context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
         room = serializer.save()
 
-        room.participants.add(request.user)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(
+            ChatRoomSerializer(
+                room,
+                context={"request": request}
+            ).data,
+            status=status.HTTP_201_CREATED
+        )
 
 class RoomMessagesView(APIView):
     permission_classes = [IsAuthenticated]
