@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import API from "../services/api";
 
-const WS_URL = import.meta.env.VITE_WS_CHAT_URL; 
+const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 
 function ChatWindow({ selectedChat }) {
   const [messages, setMessages] = useState([]);
@@ -34,6 +34,8 @@ function ChatWindow({ selectedChat }) {
     socketRef.current = new WebSocket(
       `${WS_URL}/chat/${selectedChat.id}/`
     );
+
+    socketRef.current.onopen = () => console.log("Real-time chat connected");
 
     socketRef.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
@@ -86,7 +88,7 @@ function ChatWindow({ selectedChat }) {
       
       {/* Header */}
       <div className="p-4 border-b border-gray-700 text-white font-semibold">
-        {selectedChat.name}
+        {selectedChat.name? selectedChat.name: selectedChat.display_name}
       </div>
 
       {/* Messages */}
@@ -94,7 +96,7 @@ function ChatWindow({ selectedChat }) {
         {messages.map((msg, index) => {
           const sender = msg.sender;
           const content = msg.message || msg.content;
-          const isOwn = sender === currentUserUsername;
+          const isOwn = msg.is_me? msg.is_me: sender==currentUserUsername;
 
           return (
             <div

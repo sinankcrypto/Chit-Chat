@@ -173,3 +173,44 @@ CHANNEL_LAYERS = {
 
 SESSION_COOKIE_SAMESITE = "Lax"
 CSRF_COOKIE_SAMESITE = "Lax"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,   # ← MUST be False
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name}:{lineno} | {message}",
+            "style": "{",
+            "datefmt": "%H:%M:%S",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",   # ← DEBUG so nothing is filtered
+    },
+    "loggers": {
+        # Force ALL your app logs
+        "bookings": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+            "propagate": False,
+        },
+        "agency_app": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+            "propagate": False,
+        },
+        # This catches any logger you forgot to name
+        "": {
+            "level": "DEBUG",
+            "handlers": ["console"],
+            "propagate": False,
+        },
+    },
+}

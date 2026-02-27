@@ -25,10 +25,12 @@ function ChatList({ onSelectChat }) {
           onClick={() => onSelectChat(room)}
           className="p-3 rounded-lg hover:bg-gray-700 cursor-pointer"
         >
-          <h3 className="text-white font-semibold">{room.name}</h3>
-          <p className="text-gray-400 text-sm">
-            {room.participants.length} members
-          </p>
+          <h3 className="text-white font-semibold">{room.name?room.name:room.display_name}</h3>
+          {room.room_type=='group'&&
+            <p className="text-gray-400 text-sm">
+              {room.participants.length} members
+            </p>
+          }
         </div>
       ))}
     </div>

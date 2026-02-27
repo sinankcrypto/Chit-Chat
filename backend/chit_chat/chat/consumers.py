@@ -52,13 +52,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 "type": "chat_message",
                 "message": saved_message.content,
-                "sender": self.user.email,
+                "sender": self.user.username,
+                "sender_id": self.user.id,
                 "timestamp": str(saved_message.timestamp),
             }
         )
 
     async def chat_message(self, event):
-        await self.send(text_data=json.dumps(event))
+        is_me = event.get("sender_id") == self.user.id
+
+        await self.send(text_data=json.dumps({
+            "message": event["message"],
+            "sender": event["sender"],
+            "timestamp": event["timestamp"],
+            "is_me": is_me,
+        }))
 
     @database_sync_to_async
     def user_in_room(self):
