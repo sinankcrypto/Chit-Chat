@@ -1,22 +1,21 @@
-function ChatList({ onSelectChat }) {
-  const chats = [
-    { id: 1, name: "John Doe", lastMessage: "Hey, how are you?" },
-    { id: 2, name: "Jane Smith", lastMessage: "Let's meet tomorrow." },
-    { id: 3, name: "Dev Group", lastMessage: "Project update?" },
-  ];
+import { useEffect, useState } from "react";
+import API from "../services/api";
 
+function ChatList({ rooms, onSelectChat  }) {
   return (
     <div className="mt-4 space-y-2">
-      {chats.map((chat) => (
+      {rooms.map((room) => (
         <div
-          key={chat.id}
-          onClick={() => onSelectChat(chat)}
+          key={room.id}
+          onClick={() => onSelectChat(room)}
           className="p-3 rounded-lg hover:bg-gray-700 cursor-pointer"
         >
-          <h3 className="text-white font-semibold">{chat.name}</h3>
-          <p className="text-gray-400 text-sm truncate">
-            {chat.lastMessage}
-          </p>
+          <h3 className="text-white font-semibold">{room.name?room.name:room.display_name}</h3>
+          {room.room_type=='group'&&
+            <p className="text-gray-400 text-sm">
+              {room.participants.length} members
+            </p>
+          }
         </div>
       ))}
     </div>

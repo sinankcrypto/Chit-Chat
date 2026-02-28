@@ -15,11 +15,12 @@ function VerifyOtp() {
     e.preventDefault();
 
     try {
-      await API.post("/auth/verify-otp/", {
+      const res = await API.post("/auth/verify-otp/", {
         email,
         otp,
       });
-
+      
+      localStorage.setItem("username", res.data.user);
       toast.success("OTP Verified Successfully!");
 
       navigate("/chat");

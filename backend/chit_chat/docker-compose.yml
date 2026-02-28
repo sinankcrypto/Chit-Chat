@@ -12,11 +12,16 @@ services:
       interval: 5s
       retries: 5
       timeout: 5s
+  
+  redis:
+    image: redis:7
+    container_name: chat_redis
+    restart: always
 
   web:
     build: .
     container_name: chat_django
-    command: python manage.py runserver 0.0.0.0:8000
+    command: daphne -b 0.0.0.0 -p 8000 chit_chat.asgi:application
     volumes:
       - .:/app
     ports:

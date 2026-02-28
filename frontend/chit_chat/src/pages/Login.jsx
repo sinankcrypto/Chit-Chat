@@ -22,6 +22,7 @@ function Login() {
     e.preventDefault();
     try {
       const res = await API.post("/auth/login/", formData);
+      localStorage.setItem("username", res.data.user);
 
       toast.success("Login successful!");
       navigate("/chat");
