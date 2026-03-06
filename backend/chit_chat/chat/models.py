@@ -43,6 +43,12 @@ class ChatRoom(models.Model):
 
 
 class Message(models.Model):
+    MESSAGE_TYPE_CHOICES = (
+        ("text", "Text"),
+        ("image","Image"),
+        ("video","Video"),
+        ("file","File"),
+    )
     room = models.ForeignKey(
         ChatRoom,
         on_delete=models.CASCADE,
@@ -52,7 +58,17 @@ class Message(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
-    content = models.TextField()
+    message_type = models.CharField(
+        max_length=10,
+        choices=MESSAGE_TYPE_CHOICES,
+        default="text"
+    )
+    content = models.TextField(blank=True, null=True)
+    file = models.FileField(
+        upload_to="chat_files/",
+        blank=True,
+        null=True
+    )
     timestamp = models.DateTimeField(auto_now_add=True)
     read_by = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
@@ -61,4 +77,4 @@ class Message(models.Model):
     )
 
     def __str__(self):
-        return f"{self.sender.email} - {self.room.name}"
+        return f"{self.sender} - {self.room.name}"

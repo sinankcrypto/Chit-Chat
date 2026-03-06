@@ -127,4 +127,11 @@ class MessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Message
-        fields = ["id", "sender", "content", "timestamp", "read_by"]                      
+        fields = [
+            "id",
+            "sender",
+            "message_type",
+            "content",
+            "file",
+            "timestamp"
+        ]                      

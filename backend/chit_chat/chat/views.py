@@ -103,3 +103,39 @@ class RemoveUserFromGroupView(APIView):
         room.participants.remove(user)
 
         return Response({"message": "User removed successfully"})
+    
+class UploadChatFileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, room_id):
+        room = get_object_or_404(ChatRoom, id=room_id)
+
+        if not room.participants.filter(id=request.user.id).exists():
+            return Response(
+                {"error": "Not authorized"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        file = request.FILES.get("file")
+
+        if not file:
+            return Response(
+                {"error": "No file uploaded"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        message = Message.objects.create(
+            room=room,
+            sender=request.user,
+            file=file,
+            message_type="file"
+        )
+
+        return Response(
+            {
+                "message_id": message.id,
+                "file_url": message.file.url,
+                "message_type": message.message_type
+            },
+            status=status.HTTP_201_CREATED
+        )

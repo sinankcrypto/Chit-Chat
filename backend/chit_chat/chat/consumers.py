@@ -44,14 +44,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         message = data.get("message")
+        message_type = data.get("type", "text")
 
-        saved_message = await self.save_message(message)
+        saved_message = await self.save_message(message, message_type)
 
         await self.channel_layer.group_send(
             self.room_group_name,
             {
                 "type": "chat_message",
                 "message": saved_message.content,
+                "message_type": saved_message.message_type,
                 "sender": self.user.username,
                 "sender_id": self.user.id,
                 "timestamp": str(saved_message.timestamp),
@@ -77,12 +79,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return False
 
     @database_sync_to_async
-    def save_message(self, content):
+    def save_message(self, content, message_type):
         room = ChatRoom.objects.get(id=self.room_id)
         message = Message.objects.create(
             room=room,
             sender=self.user,
             content=content,
+            message_type=message_type
         )
         message.read_by.add(self.user)
         return message
