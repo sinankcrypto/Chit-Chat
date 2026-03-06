@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
+import mimetypes
 
 from .models import ChatRoom, Message
 from .serializers import ChatRoomSerializer, MessageSerializer
@@ -115,7 +116,7 @@ class UploadChatFileView(APIView):
                 {"error": "Not authorized"},
                 status=status.HTTP_403_FORBIDDEN
             )
-
+    
         file = request.FILES.get("file")
 
         if not file:
@@ -124,11 +125,20 @@ class UploadChatFileView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        file_type, _ = mimetypes.guess_type(file.name)
+
+        if file_type and file_type.startswith("image"):
+            msg_type = "image"
+        elif file_type and file_type.startswith("video"):
+            msg_type = "video"
+        else:
+            msg_type = "file"
+
         message = Message.objects.create(
             room=room,
             sender=request.user,
             file=file,
-            message_type="file"
+            message_type=msg_type
         )
 
         return Response(
