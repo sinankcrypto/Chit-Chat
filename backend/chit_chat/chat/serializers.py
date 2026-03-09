@@ -134,4 +134,10 @@ class MessageSerializer(serializers.ModelSerializer):
             "content",
             "file",
             "timestamp"
-        ]                      
+        ]
+
+    def get_file_url(self, obj):
+        request = self.context.get("request")
+        if obj.file:
+            return request.build_absolute_uri(obj.file.url)
+        return None               

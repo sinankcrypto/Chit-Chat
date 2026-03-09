@@ -8,6 +8,7 @@ import mimetypes
 
 from .models import ChatRoom, Message
 from .serializers import ChatRoomSerializer, MessageSerializer
+from .pagination import MessageCursorPagination
 
 User = get_user_model()
 
@@ -61,9 +62,17 @@ class RoomMessagesView(APIView):
         request.user.read_messages.add(*unread_messages)
         
         messages = room.messages.order_by("timestamp")
-        serializer = MessageSerializer(messages, many=True)
 
-        return Response(serializer.data)
+        paginator = MessageCursorPagination()
+        paginated_messages = paginator.paginate_queryset(messages, request)
+
+        serializer = MessageSerializer(
+            paginated_messages,
+            many=True,
+            context={"request": request}
+        )
+
+        return paginator.get_paginated_response(serializer.data)
     
 class AddUsersToGroupView(APIView):
     permission_classes = [IsAuthenticated]
