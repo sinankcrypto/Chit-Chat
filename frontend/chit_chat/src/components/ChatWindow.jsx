@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import API from "../services/api";
 import GroupInfoModal from "./GroupInfoModal";
+import EmojiPicker from "emoji-picker-react";
 
 const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 
@@ -10,6 +11,8 @@ function ChatWindow({ selectedChat, refreshRooms }) {
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [file, setFile] = useState(null);
+  const [showEmoji, setShowEmoji] = useState(false);
 
   // Fetch old messages
   useEffect(() => {
@@ -20,7 +23,7 @@ function ChatWindow({ selectedChat, refreshRooms }) {
         const res = await API.get(
           `/chat/rooms/${selectedChat.id}/messages/`
         );
-        setMessages(res.data);
+        setMessages(res.data.results.reverse());
       } catch (err) {
         console.log(err);
       }
@@ -61,19 +64,42 @@ function ChatWindow({ selectedChat, refreshRooms }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const sendMessage = () => {
-    if (!newMessage.trim()) return;
+  const handleSendMessage = async () => {
+    if (!newMessage && !file) return;
 
-    socketRef.current.send(
-      JSON.stringify({ message: newMessage })
-    );
+    try {
+      let file_id = null;
 
-    setNewMessage("");
+      // Upload file if exists
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("room", selectedChat.id);
+
+        const res = await API.post(`/chat/rooms/${selectedChat.id}/upload/`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+
+        file_id = res.data.file_id
+      }
+
+      socketRef.current.send(
+        JSON.stringify({
+          message: newMessage,
+          file_id: file_id,
+        })
+      );
+
+      setNewMessage("");
+      setFile(null);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
-      sendMessage();
+      handleSendMessage();
     }
   };
 
@@ -112,8 +138,10 @@ function ChatWindow({ selectedChat, refreshRooms }) {
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg, index) => {
           const sender = msg.sender;
-          const content = msg.message || msg.content;
           const isOwn = msg.is_me? msg.is_me: sender==currentUserUsername;
+          const fileUrl = msg.file_url
+          ? `${import.meta.env.VITE_API_BASE_URL}${msg.file_url}`
+          : null;
 
           return (
             <div
@@ -133,7 +161,18 @@ function ChatWindow({ selectedChat, refreshRooms }) {
                   </p>
                 )}
 
-                <p>{content}</p>
+                {/* Text */}
+                {(msg.content || msg.message) && (
+                  <p>{msg.content || msg.message}</p>
+                )}
+
+                {/* Image */}
+                {msg.file_url && (
+                  <img
+                    src={fileUrl}
+                    className="mt-2 rounded max-h-60"
+                  />
+                )}
 
                 <p className="text-[10px] text-gray-300 mt-1 text-right">
                   {new Date(msg.timestamp).toLocaleTimeString()}
@@ -145,22 +184,61 @@ function ChatWindow({ selectedChat, refreshRooms }) {
         <div ref={messagesEndRef} />
       </div>
 
+      {showEmoji && (
+        <div className="absolute bottom-20">
+          <EmojiPicker
+            onEmojiClick={(emojiData) =>
+              setNewMessage((prev) => prev + emojiData.emoji)
+            }
+          />
+        </div>
+      )}
+
       {/* Input */}
-      <div className="p-4 border-t border-gray-700 flex items-center">
+      <div className="border-t border-gray-700 p-3 flex items-center gap-2">
+
+        {/* Emoji Button */}
+        <button
+          onClick={() => setShowEmoji(!showEmoji)}
+          className="text-xl"
+        >
+          😀
+        </button>
+
+        {/* File Upload */}
+        <label className="cursor-pointer text-xl">
+          📎
+          <input
+            type="file"
+            hidden
+            onChange={(e) => setFile(e.target.files[0])}
+          />
+        </label>
+
+        {/* Message Input */}
         <input
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           onKeyDown={handleKeyPress}
-          className="flex-1 p-3 rounded-full bg-gray-800 text-white outline-none"
-          placeholder="Type a message..."
+          placeholder="Type a message"
+          className="flex-1 bg-gray-800 border border-gray-700 rounded px-3 py-2"
         />
+
+        {file && (
+          <div className="p-2 text-sm text-gray-400">
+            Selected: {file.name}
+          </div>
+        )}
+
+        {/* Send Button */}
         <button
-          onClick={sendMessage}
-          className="ml-3 bg-indigo-600 hover:bg-indigo-700 px-5 py-2 rounded-full text-white"
+          onClick={handleSendMessage}
+          className="bg-indigo-600 px-4 py-2 rounded"
         >
           Send
         </button>
+
       </div>
       {showGroupInfo && (
         <GroupInfoModal

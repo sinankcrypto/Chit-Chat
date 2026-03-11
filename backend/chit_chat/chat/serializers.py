@@ -124,20 +124,26 @@ class ChatRoomSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = serializers.StringRelatedField()
+    file_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
         fields = [
             "id",
             "sender",
-            "message_type",
             "content",
-            "file",
+            "message_type",
+            "file_url",
+            "attachment",
+            "read_by",
             "timestamp"
         ]
 
     def get_file_url(self, obj):
         request = self.context.get("request")
-        if obj.file:
-            return request.build_absolute_uri(obj.file.url)
-        return None               
+        if obj.attachment and obj.attachment.file:
+            url = obj.attachment.file.url
+
+            return url
+
+        return None           

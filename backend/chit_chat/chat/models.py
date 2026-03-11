@@ -51,6 +51,13 @@ class ChatFile(models.Model):
     size = models.IntegerField()
 
 class Message(models.Model):
+    MESSAGE_TYPE_CHOICES = (
+        ("text", "Text"),
+        ("image","Image"),
+        ("video","Video"),
+        ("file","File"),
+        ("mixed","Mixed"),
+    )
 
     room = models.ForeignKey(
         ChatRoom,
@@ -62,6 +69,11 @@ class Message(models.Model):
         on_delete=models.CASCADE
     )
     content = models.TextField(blank=True, null=True)
+    message_type = models.CharField(
+        max_length=10,
+        choices=MESSAGE_TYPE_CHOICES,
+        default="text"
+    )
     attachment = models.ForeignKey(
         ChatFile,
         on_delete=models.CASCADE,

@@ -2,7 +2,7 @@ import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
-from .models import ChatRoom, Message
+from .models import ChatRoom, Message, ChatFile
 import logging
 
 logger = logging.Logger(__name__)
@@ -44,9 +44,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         data = json.loads(text_data)
         message = data.get("message")
-        message_type = data.get("type", "text")
+        file_id = data.get("file_id")
 
-        saved_message = await self.save_message(message, message_type)
+        # determine message type
+        if file_id and message:
+            message_type = "mixed"
+        elif file_id:
+            message_type = "file"
+        else:
+            message_type = "text"
+
+        saved_message = await self.save_message(message, message_type, file_id)
 
         await self.channel_layer.group_send(
             self.room_group_name,
@@ -54,6 +62,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "type": "chat_message",
                 "message": saved_message.content,
                 "message_type": saved_message.message_type,
+                "file_url": saved_message.attachment.file.url if saved_message.attachment else None,
                 "sender": self.user.username,
                 "sender_id": self.user.id,
                 "timestamp": str(saved_message.timestamp),
@@ -65,7 +74,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.send(text_data=json.dumps({
             "message": event["message"],
+            "message_type": event["message_type"],
+            "file_url": event["file_url"],
             "sender": event["sender"],
+            "sender_id": event["sender_id"],
             "timestamp": event["timestamp"],
             "is_me": is_me,
         }))
@@ -79,13 +91,19 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return False
 
     @database_sync_to_async
-    def save_message(self, content, message_type):
-        room = ChatRoom.objects.get(id=self.room_id)
+    def save_message(self, message, message_type, file_id=None):
+        attachment = None
+
+        if file_id:
+            attachment = ChatFile.objects.get(id=file_id)
+
         message = Message.objects.create(
-            room=room,
+            room_id=self.room_id,
             sender=self.user,
-            content=content,
-            message_type=message_type
+            content=message,
+            message_type=message_type,
+            attachment=attachment
         )
+
         message.read_by.add(self.user)
         return message
