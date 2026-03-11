@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 import mimetypes
 
-from .models import ChatRoom, Message
+from .models import ChatRoom, Message, ChatFile
 from .serializers import ChatRoomSerializer, MessageSerializer
 from .pagination import MessageCursorPagination
 
@@ -61,7 +61,7 @@ class RoomMessagesView(APIView):
 
         request.user.read_messages.add(*unread_messages)
         
-        messages = room.messages.order_by("timestamp")
+        messages = room.messages.order_by("-timestamp")
 
         paginator = MessageCursorPagination()
         paginated_messages = paginator.paginate_queryset(messages, request)
@@ -137,24 +137,24 @@ class UploadChatFileView(APIView):
         file_type, _ = mimetypes.guess_type(file.name)
 
         if file_type and file_type.startswith("image"):
-            msg_type = "image"
+            file_category  = "image"
         elif file_type and file_type.startswith("video"):
-            msg_type = "video"
+            file_category  = "video"
         else:
-            msg_type = "file"
+            file_category  = "file"
 
-        message = Message.objects.create(
-            room=room,
-            sender=request.user,
+        chat_file = ChatFile.objects.create(
             file=file,
-            message_type=msg_type
+            uploaded_by=request.user,
+            file_type=file_category,
+            size=file.size
         )
 
         return Response(
             {
-                "message_id": message.id,
-                "file_url": message.file.url,
-                "message_type": message.message_type
+                "file_id": chat_file.id,
+                "file_url": chat_file.file.url,
+                "file_type": chat_file.file_type,
             },
             status=status.HTTP_201_CREATED
         )

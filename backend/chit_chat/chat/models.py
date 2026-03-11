@@ -40,15 +40,18 @@ class ChatRoom(models.Model):
     def clean(self):
         if self.room_type == "group" and not self.name:
             raise ValidationError("Group chats must have a name.")
+        
+class ChatFile(models.Model):
 
+    file = models.FileField(upload_to="chat_files/")
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    file_type = models.CharField(max_length=20)
+    size = models.IntegerField()
 
 class Message(models.Model):
-    MESSAGE_TYPE_CHOICES = (
-        ("text", "Text"),
-        ("image","Image"),
-        ("video","Video"),
-        ("file","File"),
-    )
+
     room = models.ForeignKey(
         ChatRoom,
         on_delete=models.CASCADE,
@@ -58,16 +61,12 @@ class Message(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
-    message_type = models.CharField(
-        max_length=10,
-        choices=MESSAGE_TYPE_CHOICES,
-        default="text"
-    )
     content = models.TextField(blank=True, null=True)
-    file = models.FileField(
-        upload_to="chat_files/",
-        blank=True,
-        null=True
+    attachment = models.ForeignKey(
+        ChatFile,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
     )
     timestamp = models.DateTimeField(auto_now_add=True)
     read_by = models.ManyToManyField(
@@ -78,3 +77,4 @@ class Message(models.Model):
 
     def __str__(self):
         return f"{self.sender} - {self.room.name}"
+    
