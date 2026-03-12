@@ -13,6 +13,9 @@ function ChatWindow({ selectedChat, refreshRooms }) {
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [file, setFile] = useState(null);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [viewerImage, setViewerImage] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Fetch old messages
   useEffect(() => {
@@ -78,6 +81,13 @@ function ChatWindow({ selectedChat, refreshRooms }) {
 
         const res = await API.post(`/chat/rooms/${selectedChat.id}/upload/`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
+
+          onUploadProgress: (progressEvent) => {
+            const percent = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            setUploadProgress(percent);
+          },
         });
 
         file_id = res.data.file_id
@@ -92,6 +102,7 @@ function ChatWindow({ selectedChat, refreshRooms }) {
 
       setNewMessage("");
       setFile(null);
+      setUploadProgress(0);
     } catch (err) {
       console.error(err);
     }
@@ -142,6 +153,7 @@ function ChatWindow({ selectedChat, refreshRooms }) {
           const fileUrl = msg.file_url
           ? `${import.meta.env.VITE_API_BASE_URL}${msg.file_url}`
           : null;
+          const fileType = msg.file_type;
 
           return (
             <div
@@ -166,12 +178,65 @@ function ChatWindow({ selectedChat, refreshRooms }) {
                   <p>{msg.content || msg.message}</p>
                 )}
 
-                {/* Image */}
-                {msg.file_url && (
-                  <img
-                    src={fileUrl}
-                    className="mt-2 rounded max-h-60"
-                  />
+                {/* MEDIA */}
+                {fileUrl && (
+
+                  <>
+                    {/* Image */}
+                    {fileType?.startsWith("image") && (
+                      <img
+                        src={fileUrl}
+                        className="mt-2 rounded max-h-60 cursor-pointer"
+                        onClick={() => setViewerImage(fileUrl)}
+                      />
+                    )}
+
+                    {/* Video */}
+                    {fileType?.startsWith("video") && (
+                      <video
+                        controls
+                        className="mt-2 rounded max-h-60"
+                      >
+                        <source src={fileUrl} type={fileType} />
+                      </video>
+                    )}
+
+                    {/* Audio */}
+                    {fileType?.startsWith("audio") && (
+                      <audio
+                        controls
+                        className="mt-2 w-full"
+                      >
+                        <source src={fileUrl} type={fileType} />
+                      </audio>
+                    )}
+
+                    {/* PDF */}
+                    {fileType === "application/pdf" && (
+                      <a
+                        href={fileUrl}
+                        target="_blank"
+                        className="block mt-2 text-blue-400 underline"
+                      >
+                        📄 View PDF
+                      </a>
+                    )}
+
+                    {/* Other Files */}
+                    {!fileType?.startsWith("image") &&
+                      !fileType?.startsWith("video") &&
+                      !fileType?.startsWith("audio") &&
+                      fileType !== "application/pdf" && (
+                        <a
+                          href={fileUrl}
+                          target="_blank"
+                          download
+                          className="block mt-2 text-blue-400 underline"
+                        >
+                          📎 Download File
+                        </a>
+                      )}
+                  </>
                 )}
 
                 <p className="text-[10px] text-gray-300 mt-1 text-right">
@@ -194,6 +259,42 @@ function ChatWindow({ selectedChat, refreshRooms }) {
         </div>
       )}
 
+      {file && (
+        <div className="px-4 py-2 border-t border-gray-700 bg-gray-850 flex items-center gap-3">
+
+          {preview ? (
+            <img
+              src={preview}
+              className="h-16 rounded"
+            />
+          ) : (
+            <div className="text-sm text-gray-400">
+              📎 {file.name}
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              setFile(null);
+              setPreview(null);
+            }}
+            className="text-red-400 text-sm"
+          >
+            Remove
+          </button>
+        </div>
+      )}
+
+      {uploadProgress > 0 && uploadProgress < 100 && (
+        <div className="px-4 py-1">
+          <div className="w-full bg-gray-700 rounded h-2">
+            <div
+              className="bg-indigo-600 h-2 rounded"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
       {/* Input */}
       <div className="border-t border-gray-700 p-3 flex items-center gap-2">
 
@@ -211,7 +312,16 @@ function ChatWindow({ selectedChat, refreshRooms }) {
           <input
             type="file"
             hidden
-            onChange={(e) => setFile(e.target.files[0])}
+            onChange={(e) => {
+              const selected = e.target.files[0];
+              setFile(selected);
+
+              if (selected?.type.startsWith("image")) {
+                setPreview(URL.createObjectURL(selected));
+              } else {
+                setPreview(null);
+              }
+            }}
           />
         </label>
 
@@ -246,6 +356,18 @@ function ChatWindow({ selectedChat, refreshRooms }) {
           onClose={() => setShowGroupInfo(false)}
           refreshRooms={refreshRooms}
         />
+      )}
+
+      {viewerImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50"
+          onClick={() => setViewerImage(null)}
+        >
+          <img
+            src={viewerImage}
+            className="max-h-[90%] max-w-[90%] rounded"
+          />
+        </div>
       )}
     </div>
 
