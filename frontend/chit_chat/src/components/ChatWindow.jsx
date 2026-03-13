@@ -50,6 +50,14 @@ function ChatWindow({ selectedChat, refreshRooms }) {
 
       setMessages((prev) => [...prev, data]);
 
+      // tell backend we saw the message
+      socketRef.current.send(
+        JSON.stringify({
+          type: "read_messages",
+          room_id: selectedChat.id,
+        })
+      );
+
       // refresh sidebar data
       await refreshRooms?.();
     };

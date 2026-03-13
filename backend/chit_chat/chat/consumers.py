@@ -43,6 +43,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         data = json.loads(text_data)
+
+        if data.get("type") == "read_messages":
+            await self.mark_messages_read()
+            return
+        
         message = data.get("message")
         file_id = data.get("file_id")
 
@@ -109,3 +114,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         message.read_by.add(self.user)
         return message
+    
+    @database_sync_to_async
+    def mark_messages_read(self):
+        room = ChatRoom.objects.get(id=self.room_id)
+
+        unread_messages = room.messages.exclude(
+            read_by=self.user,
+        ).exclude(
+            sender=self.user
+        )
+
+        for msg in unread_messages:
+            msg.read_by.add(self.user)
