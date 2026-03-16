@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import (ChatRoomView, RoomMessagesView, AddUsersToGroupView, RemoveUserFromGroupView,
-                    UploadChatFileView
+                    UploadChatFileView, OnlineUsersView
                     )
 
 urlpatterns = [
@@ -9,4 +9,5 @@ urlpatterns = [
     path("rooms/<int:room_id>/add-users/", AddUsersToGroupView.as_view()),
     path("rooms/<int:room_id>/remove-user/", RemoveUserFromGroupView.as_view()),
     path("rooms/<int:room_id>/upload/", UploadChatFileView.as_view()),
+    path("online-users/", OnlineUsersView.as_view()),
 ]

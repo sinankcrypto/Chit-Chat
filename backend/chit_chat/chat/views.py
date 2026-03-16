@@ -9,6 +9,7 @@ import mimetypes
 from .models import ChatRoom, Message, ChatFile
 from .serializers import ChatRoomSerializer, MessageSerializer
 from .pagination import MessageCursorPagination
+from .utils.presence import get_online_users
 
 User = get_user_model()
 
@@ -158,3 +159,16 @@ class UploadChatFileView(APIView):
             },
             status=status.HTTP_201_CREATED
         )
+
+class OnlineUsersView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        
+        users = get_online_users()
+
+        users = [int(u) for u in users]
+
+        return Response({
+            "online_users": users
+        })

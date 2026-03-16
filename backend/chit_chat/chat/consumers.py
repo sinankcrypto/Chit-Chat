@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 from .models import ChatRoom, Message, ChatFile
 import logging
 
+from chat.utils.presence import set_user_online, set_user_offline
+
 logger = logging.Logger(__name__)
 
 User = get_user_model()
@@ -34,12 +36,49 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
+        #join presence group
+        await self.channel_layer.group_add(
+            "presence",
+            self.channel_name
+        )
+
+        #mark user online
+        await database_sync_to_async(set_user_online)(self.user.id)
+
+        #broadcast presence
+        await self.channel_layer.group_send(
+            "presence",
+            {
+                "type": "presence_event",
+                "user_id": self.user.id,
+                "status": "online"
+            }
+        )
+
+        
+
     async def disconnect(self, close_code):
         if hasattr(self, "room_group_name"):
             await self.channel_layer.group_discard(
                 self.room_group_name,
                 self.channel_name
             )
+
+        await database_sync_to_async(set_user_offline)(self.user.id)
+
+        await self.channel_layer.group_send(
+            "presence",
+            {
+                "type": "presence_event",
+                "user_id": self.user.id,
+                "status": "offline"
+            }
+        )
+
+        await self.channel_layer.group_discard(
+            "presence",
+            self.channel_name
+        )
 
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -127,3 +166,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         for msg in unread_messages:
             msg.read_by.add(self.user)
+
+    async def presence_event(self, event):
+
+        await self.send(text_data=json.dumps({
+            "type": "presence",
+            "user_id": event["user_id"],
+            "status": event["status"]
+        }))
