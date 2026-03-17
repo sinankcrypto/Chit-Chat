@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
 
-function ChatList({ rooms, onSelectChat, selectedChat  }) {
+function ChatList({ rooms, onSelectChat, selectedChat, onlineUsers  }) {
   const sortedRooms = [...rooms].sort((a, b) => {
     const aTime = a.last_message?.timestamp || a.created_at;
     const bTime = b.last_message?.timestamp || b.created_at;
@@ -13,6 +13,12 @@ function ChatList({ rooms, onSelectChat, selectedChat  }) {
     <div className="mt-2 space-y-1 overflow-y-auto flex-1">
       {sortedRooms.map((room) => {
         const isActive = selectedChat?.id === room.id;
+        const currentUser = localStorage.getItem("username");
+        const participants = room.participants || [];
+        const otherUser = participants.find(
+          (p) => p.username !== currentUser
+        );
+        const isOnline = onlineUsers.has(otherUser?.id);
 
         return (
           <div
@@ -26,9 +32,13 @@ function ChatList({ rooms, onSelectChat, selectedChat  }) {
           >
             {/* Top row */}
             <div className="flex justify-between items-center">
-              <h3 className="text-white font-semibold truncate">
-                {room.display_name}
-              </h3>
+              <div className="flex items-center gap-2">
+                <span>{room.display_name}</span>
+
+                {isOnline && (
+                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                )}
+              </div>
 
               {room.last_message && (
                 <span className="text-xs text-gray-400">

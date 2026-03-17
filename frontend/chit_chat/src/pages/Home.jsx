@@ -8,6 +8,7 @@ import API from "../services/api";
 function Home() {
   const [selectedChat, setSelectedChat] = useState(null);
   const [rooms, setRooms] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   const fetchRooms = async () => {
     try {
@@ -18,8 +19,18 @@ function Home() {
     }
   };
 
+  const fetchOnlineUsers = async () => {
+    try{
+      const res = await API.get("/chat/online-users/");
+      setOnlineUsers(new Set(res.data.online_users));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     fetchRooms();
+    fetchOnlineUsers();
   }, []); 
 
   const handleSelectChat = async (room) => {
@@ -35,10 +46,16 @@ function Home() {
       <Sidebar
         rooms={rooms}
         selectedChat={selectedChat}
-        onSelectChat={handleSelectChat} 
+        onSelectChat={handleSelectChat}
         refreshRooms={fetchRooms}
+        onlineUsers={onlineUsers}
       />
-      <ChatWindow selectedChat={selectedChat} refreshRooms={fetchRooms}/>
+      <ChatWindow
+       selectedChat={selectedChat}
+       refreshRooms={fetchRooms} 
+       onlineUsers={onlineUsers} 
+       setOnlineUsers={setOnlineUsers} 
+      />
     </div>
   );
 }

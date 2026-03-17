@@ -5,7 +5,7 @@ import EmojiPicker from "emoji-picker-react";
 
 const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 
-function ChatWindow({ selectedChat, refreshRooms }) {
+function ChatWindow({ selectedChat, refreshRooms, onlineUsers, setOnlineUsers }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const socketRef = useRef(null);
@@ -16,6 +16,14 @@ function ChatWindow({ selectedChat, refreshRooms }) {
   const [preview, setPreview] = useState(null);
   const [viewerImage, setViewerImage] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const currentUserUsername = localStorage.getItem("username"); 
+
+  const otherUser = selectedChat?.participants?.find(
+    (p) => p.username !== currentUserUsername
+  );
+
+  const isOnline = onlineUsers.has(otherUser?.id);
 
   // Fetch old messages
   useEffect(() => {
@@ -47,6 +55,22 @@ function ChatWindow({ selectedChat, refreshRooms }) {
 
     socketRef.current.onmessage = async (event) => {
       const data = JSON.parse(event.data);
+
+      if (data.type === "presence") {
+        setOnlineUsers((prev) => {
+          const updated = new Set(prev);
+
+          if (data.status === "online") {
+            updated.add(data.user_id);
+          } else {
+            updated.delete(data.user_id);
+          }
+
+          return updated;
+        });
+
+        return;
+      }
 
       setMessages((prev) => [...prev, data]);
 
@@ -131,9 +155,6 @@ function ChatWindow({ selectedChat, refreshRooms }) {
     );
   }
 
-  const currentUserUsername = localStorage.getItem("username"); 
-  // Store this during login if not already
-
   return (
     <div className="flex-1 bg-gray-900 flex flex-col">
       
@@ -142,6 +163,11 @@ function ChatWindow({ selectedChat, refreshRooms }) {
         <h2 className="text-xl font-semibold">
           {selectedChat.display_name}
         </h2>
+        {selectedChat.room_type === "private" && (
+          <p className="text-sm text-gray-400">
+            {isOnline ? "Online" : "Offline"}
+          </p>
+        )}
 
         {selectedChat.room_type === "group" && (
           <button
