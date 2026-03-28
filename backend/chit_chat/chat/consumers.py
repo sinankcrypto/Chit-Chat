@@ -7,7 +7,7 @@ import logging
 
 from chat.utils.presence import set_user_online, set_user_offline
 
-logger = logging.Logger(__name__)
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -35,26 +35,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
         await self.accept()
-
-        #join presence group
-        await self.channel_layer.group_add(
-            "presence",
-            self.channel_name
-        )
-
-        #mark user online
-        await database_sync_to_async(set_user_online)(self.user.id)
-
-        #broadcast presence
-        await self.channel_layer.group_send(
-            "presence",
-            {
-                "type": "presence_event",
-                "user_id": self.user.id,
-                "status": "online"
-            }
-        )
-
         
 
     async def disconnect(self, close_code):
@@ -64,21 +44,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.channel_name
             )
 
-        await database_sync_to_async(set_user_offline)(self.user.id)
-
-        await self.channel_layer.group_send(
-            "presence",
-            {
-                "type": "presence_event",
-                "user_id": self.user.id,
-                "status": "offline"
-            }
-        )
-
-        await self.channel_layer.group_discard(
-            "presence",
-            self.channel_name
-        )
 
     async def receive(self, text_data):
         data = json.loads(text_data)
@@ -169,6 +134,60 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     async def presence_event(self, event):
 
+        await self.send(text_data=json.dumps({
+            "type": "presence",
+            "user_id": event["user_id"],
+            "status": event["status"]
+        }))
+
+class PresenceConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.user = self.scope["user"]
+
+        if not self.user or not self.user.is_authenticated:
+            await self.close()
+            return
+        
+        await self.accept()
+
+        await self.channel_layer.group_add(
+            "presence",
+            self.channel_name
+        )
+
+        await database_sync_to_async(set_user_online)(self.user.id)
+        logger.info(f"Added to online users: {self.user}")
+
+        await self.channel_layer.group_send(
+            "presence",
+            {
+                "type": "presence_event",
+                "user_id": self.user.id,
+                "status": "online"
+            }
+        )
+
+    async def disconnect(self, code):
+        if not self.user:
+            return
+        
+        await database_sync_to_async(set_user_offline)(self.user.id)
+
+        await self.channel_layer.group_send(
+            "presence",
+            {
+                "type": "presence_event",
+                "user_id": self.user.id,
+                "status": "offline"
+            }
+        )
+
+        await self.channel_layer.group_discard(
+            "presence",
+            self.channel_name
+        )
+
+    async def presence_event(self, event):
         await self.send(text_data=json.dumps({
             "type": "presence",
             "user_id": event["user_id"],
