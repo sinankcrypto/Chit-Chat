@@ -200,23 +200,5 @@ LOGGING = {
         "handlers": ["console"],
         "level": "DEBUG",   # ← DEBUG so nothing is filtered
     },
-    "loggers": {
-        # Force ALL your app logs
-        "bookings": {
-            "level": "DEBUG",
-            "handlers": ["console"],
-            "propagate": False,
-        },
-        "agency_app": {
-            "level": "DEBUG",
-            "handlers": ["console"],
-            "propagate": False,
-        },
-        # This catches any logger you forgot to name
-        "": {
-            "level": "DEBUG",
-            "handlers": ["console"],
-            "propagate": False,
-        },
-    },
+
 }
