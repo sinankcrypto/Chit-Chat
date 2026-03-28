@@ -1,14 +1,15 @@
 import Logo from "../components/Logo";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
-import { useState } from "react";
+import { useReducer, useRef, useState } from "react";
 import { useEffect } from "react";
 import API from "../services/api";
+import { usePresence } from "../context/PresenceContext";
 
 function Home() {
   const [selectedChat, setSelectedChat] = useState(null);
   const [rooms, setRooms] = useState([]);
-  const [onlineUsers, setOnlineUsers] = useState(new Set());
+  const { onlineUsers } = usePresence();
 
   const fetchRooms = async () => {
     try {
@@ -19,19 +20,9 @@ function Home() {
     }
   };
 
-  const fetchOnlineUsers = async () => {
-    try{
-      const res = await API.get("/chat/online-users/");
-      setOnlineUsers(new Set(res.data.online_users));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   useEffect(() => {
     fetchRooms();
-    fetchOnlineUsers();
-  }, []); 
+  }, []);
 
   const handleSelectChat = async (room) => {
     setSelectedChat(room);
@@ -39,6 +30,10 @@ function Home() {
     // refetch rooms to update unread_count
     await fetchRooms();
   };
+
+    useEffect(() => {
+      console.log("online users updated:", onlineUsers);
+    }, [onlineUsers]);
 
 
   return (
@@ -48,13 +43,10 @@ function Home() {
         selectedChat={selectedChat}
         onSelectChat={handleSelectChat}
         refreshRooms={fetchRooms}
-        onlineUsers={onlineUsers}
       />
       <ChatWindow
        selectedChat={selectedChat}
        refreshRooms={fetchRooms} 
-       onlineUsers={onlineUsers} 
-       setOnlineUsers={setOnlineUsers} 
       />
     </div>
   );

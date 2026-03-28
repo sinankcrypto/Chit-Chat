@@ -1,19 +1,23 @@
 import { useEffect, useState } from "react";
 import API from "../services/api";
+import { usePresence } from "../context/PresenceContext";
+import { useAuth } from "../context/AuthContext";
 
-function ChatList({ rooms, onSelectChat, selectedChat, onlineUsers  }) {
+function ChatList({ rooms, onSelectChat, selectedChat  }) {
   const sortedRooms = [...rooms].sort((a, b) => {
     const aTime = a.last_message?.timestamp || a.created_at;
     const bTime = b.last_message?.timestamp || b.created_at;
     return new Date(bTime) - new Date(aTime);
   });
-  const currentUser = localStorage.getItem("username");
+  const { user } = useAuth();
+  const currentUser = user
+  const { onlineUsers } = usePresence();
+
 
   return (
     <div className="mt-2 space-y-1 overflow-y-auto flex-1">
       {sortedRooms.map((room) => {
         const isActive = selectedChat?.id === room.id;
-        const currentUser = localStorage.getItem("username");
         const participants = room.participants || [];
         const otherUser = participants.find(
           (p) => p.username !== currentUser

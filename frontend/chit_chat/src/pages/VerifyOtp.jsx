@@ -3,6 +3,7 @@ import { useState } from "react";
 import API from "../services/api";
 import Logo from "../components/Logo";
 import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 function VerifyOtp() {
   const location = useLocation();
@@ -10,6 +11,8 @@ function VerifyOtp() {
   const email = location.state?.email;
 
   const [otp, setOtp] = useState("");
+
+  const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,7 +23,7 @@ function VerifyOtp() {
         otp,
       });
       
-      localStorage.setItem("username", res.data.user);
+      login(res.data.user)
       toast.success("OTP Verified Successfully!");
 
       navigate("/chat");

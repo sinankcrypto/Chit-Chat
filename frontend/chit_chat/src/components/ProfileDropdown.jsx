@@ -3,13 +3,18 @@ import { FaUserCircle } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
+import { usePresence } from "../context/PresenceContext";
+import { useAuth } from "../context/AuthContext";
 
 function ProfileDropdown() {
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
+  const { disconnectPresence } = usePresence();
+  const { logout } = useAuth();
 
   const handleLogout = async () => {
-    const res = await API.post("/auth/logout/")
+    disconnectPresence();
+    await logout();
     toast.success("Logged out successfully")
     navigate('/')
   };

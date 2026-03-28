@@ -2,10 +2,11 @@ import { useEffect, useState, useRef } from "react";
 import API from "../services/api";
 import GroupInfoModal from "./GroupInfoModal";
 import EmojiPicker from "emoji-picker-react";
+import { usePresence } from "../context/PresenceContext";
 
 const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 
-function ChatWindow({ selectedChat, refreshRooms, onlineUsers, setOnlineUsers }) {
+function ChatWindow({ selectedChat, refreshRooms }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const socketRef = useRef(null);
@@ -16,6 +17,8 @@ function ChatWindow({ selectedChat, refreshRooms, onlineUsers, setOnlineUsers })
   const [preview, setPreview] = useState(null);
   const [viewerImage, setViewerImage] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  const { onlineUsers } = usePresence();
 
   const currentUserUsername = localStorage.getItem("username"); 
 
@@ -55,22 +58,6 @@ function ChatWindow({ selectedChat, refreshRooms, onlineUsers, setOnlineUsers })
 
     socketRef.current.onmessage = async (event) => {
       const data = JSON.parse(event.data);
-
-      if (data.type === "presence") {
-        setOnlineUsers((prev) => {
-          const updated = new Set(prev);
-
-          if (data.status === "online") {
-            updated.add(data.user_id);
-          } else {
-            updated.delete(data.user_id);
-          }
-
-          return updated;
-        });
-
-        return;
-      }
 
       setMessages((prev) => [...prev, data]);
 
