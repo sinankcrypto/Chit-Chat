@@ -24,6 +24,9 @@ function ChatWindow({ selectedChat, refreshRooms }) {
   const messagesContainerRef = useRef(null);
   const initialLoadRef = useRef(true);
 
+  const [firstUnreadId, setFirstUnreadId] = useState(null);
+  const firstUnreadRef = useRef(null);
+
   const { onlineUsers } = usePresence();
 
   const { user } = useAuth()
@@ -49,6 +52,7 @@ function ChatWindow({ selectedChat, refreshRooms }) {
         setMessages(res.data.results.reverse());
         setNextCursor(res.data.next);
         initialLoadRef.current = true;
+        setFirstUnreadId(res.data.first_unread_id);
 
       } catch (err) {
         console.log(err);
@@ -95,11 +99,26 @@ function ChatWindow({ selectedChat, refreshRooms }) {
 
   // Auto-scroll
   useEffect(() => {
+    if (!messages.length) return;
+
+    // Initial chat open
     if (initialLoadRef.current) {
-      messagesEndRef.current?.scrollIntoView();
+      if (firstUnreadId && firstUnreadRef.current) {
+        firstUnreadRef.current.scrollIntoView({
+          block: "center",
+        });
+      } else {
+        messagesEndRef.current?.scrollIntoView();
+      }
+
       initialLoadRef.current = false;
+      return;
     }
-  }, [messages]);
+
+    // When new messages arrive (via websocket)
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+
+  }, [messages, firstUnreadId]);
 
   const handleSendMessage = async () => {
     if (!newMessage && !file) return;
@@ -147,7 +166,7 @@ function ChatWindow({ selectedChat, refreshRooms }) {
     if (!container) return;
 
     const handleScroll = () => {
-      if (container.scrollTop === 0) {
+      if (container.scrollTop === 0 && !loadingOlder) {
         loadOlderMessages();
       }
     };
@@ -158,7 +177,7 @@ function ChatWindow({ selectedChat, refreshRooms }) {
       container.removeEventListener("scroll", handleScroll);
     };
 
-  }, [nextCursor]);
+  }, [nextCursor, loadingOlder]);
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
@@ -236,96 +255,107 @@ function ChatWindow({ selectedChat, refreshRooms }) {
           ? `${import.meta.env.VITE_API_BASE_URL}${msg.file_url}`
           : null;
           const fileType = msg.file_type;
+          const isFirstUnread = msg.id === firstUnreadId;
 
           return (
-            <div
-              key={index}
-              className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
-            >
+            <>
+              {isFirstUnread && (
+                <div className="flex justify-center my-3">
+                  <div className="bg-red-500 text-white text-xs px-3 py-1 rounded-full">
+                    Unread Messages
+                  </div>
+                </div>
+              )}
               <div
-                className={`p-3 rounded-xl max-w-xs break-words ${
-                  isOwn
-                    ? "bg-indigo-600 text-white rounded-br-none"
-                    : "bg-gray-800 text-white rounded-bl-none"
-                }`}
+                ref={msg.id === firstUnreadId ? firstUnreadRef : null}
+                key={index}
+                className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
               >
-                {!isOwn && (
-                  <p className="text-xs text-indigo-400 mb-1">
-                    {sender}
-                  </p>
-                )}
+                <div
+                  className={`p-3 rounded-xl max-w-xs break-words ${
+                    isOwn
+                      ? "bg-indigo-600 text-white rounded-br-none"
+                      : "bg-gray-800 text-white rounded-bl-none"
+                  }`}
+                >
+                  {!isOwn && (
+                    <p className="text-xs text-indigo-400 mb-1">
+                      {sender}
+                    </p>
+                  )}
 
-                {/* Text */}
-                {(msg.content || msg.message) && (
-                  <p>{msg.content || msg.message}</p>
-                )}
+                  {/* Text */}
+                  {(msg.content || msg.message) && (
+                    <p>{msg.content || msg.message}</p>
+                  )}
 
-                {/* MEDIA */}
-                {fileUrl && (
+                  {/* MEDIA */}
+                  {fileUrl && (
 
-                  <>
-                    {/* Image */}
-                    {fileType?.startsWith("image") && (
-                      <img
-                        src={fileUrl}
-                        className="mt-2 rounded max-h-60 cursor-pointer"
-                        onClick={() => setViewerImage(fileUrl)}
-                      />
-                    )}
+                    <>
+                      {/* Image */}
+                      {fileType?.startsWith("image") && (
+                        <img
+                          src={fileUrl}
+                          className="mt-2 rounded max-h-60 cursor-pointer"
+                          onClick={() => setViewerImage(fileUrl)}
+                        />
+                      )}
 
-                    {/* Video */}
-                    {fileType?.startsWith("video") && (
-                      <video
-                        controls
-                        className="mt-2 rounded max-h-60"
-                      >
-                        <source src={fileUrl} type={fileType} />
-                      </video>
-                    )}
+                      {/* Video */}
+                      {fileType?.startsWith("video") && (
+                        <video
+                          controls
+                          className="mt-2 rounded max-h-60"
+                        >
+                          <source src={fileUrl} type={fileType} />
+                        </video>
+                      )}
 
-                    {/* Audio */}
-                    {fileType?.startsWith("audio") && (
-                      <audio
-                        controls
-                        className="mt-2 w-full"
-                      >
-                        <source src={fileUrl} type={fileType} />
-                      </audio>
-                    )}
+                      {/* Audio */}
+                      {fileType?.startsWith("audio") && (
+                        <audio
+                          controls
+                          className="mt-2 w-full"
+                        >
+                          <source src={fileUrl} type={fileType} />
+                        </audio>
+                      )}
 
-                    {/* PDF */}
-                    {fileType === "application/pdf" && (
-                      <a
-                        href={fileUrl}
-                        target="_blank"
-                        className="block mt-2 text-blue-400 underline"
-                      >
-                        📄 View PDF
-                      </a>
-                    )}
-
-                    {/* Other Files */}
-                    {!fileType?.startsWith("image") &&
-                      !fileType?.startsWith("video") &&
-                      !fileType?.startsWith("audio") &&
-                      fileType !== "application/pdf" && (
+                      {/* PDF */}
+                      {fileType === "application/pdf" && (
                         <a
                           href={fileUrl}
                           target="_blank"
-                          download
                           className="block mt-2 text-blue-400 underline"
                         >
-                          📎 Download File
+                          📄 View PDF
                         </a>
                       )}
-                  </>
-                )}
 
-                <p className="text-[10px] text-gray-300 mt-1 text-right">
-                  {new Date(msg.timestamp).toLocaleTimeString()}
-                </p>
+                      {/* Other Files */}
+                      {!fileType?.startsWith("image") &&
+                        !fileType?.startsWith("video") &&
+                        !fileType?.startsWith("audio") &&
+                        fileType !== "application/pdf" && (
+                          <a
+                            href={fileUrl}
+                            target="_blank"
+                            download
+                            className="block mt-2 text-blue-400 underline"
+                          >
+                            📎 Download File
+                          </a>
+                        )}
+                    </>
+                  )}
+
+                  <p className="text-[10px] text-gray-300 mt-1 text-right">
+                    {new Date(msg.timestamp).toLocaleTimeString()}
+                  </p>
+                </div>
               </div>
-            </div>
+            </>
           );
         })}
         <div ref={messagesEndRef} />
