@@ -3,6 +3,7 @@ import API from "../services/api";
 import GroupInfoModal from "./GroupInfoModal";
 import EmojiPicker from "emoji-picker-react";
 import { usePresence } from "../context/PresenceContext";
+import { useAuth } from "../context/AuthContext";
 
 const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 
@@ -18,9 +19,16 @@ function ChatWindow({ selectedChat, refreshRooms }) {
   const [viewerImage, setViewerImage] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
+  const [nextCursor, setNextCursor] = useState(null);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const messagesContainerRef = useRef(null);
+  const initialLoadRef = useRef(true);
+
   const { onlineUsers } = usePresence();
 
-  const currentUserUsername = localStorage.getItem("username"); 
+  const { user } = useAuth()
+
+  const currentUserUsername = user;
 
   const otherUser = selectedChat?.participants?.find(
     (p) => p.username !== currentUserUsername
@@ -37,7 +45,11 @@ function ChatWindow({ selectedChat, refreshRooms }) {
         const res = await API.get(
           `/chat/rooms/${selectedChat.id}/messages/`
         );
+
         setMessages(res.data.results.reverse());
+        setNextCursor(res.data.next);
+        initialLoadRef.current = true;
+
       } catch (err) {
         console.log(err);
       }
@@ -83,7 +95,10 @@ function ChatWindow({ selectedChat, refreshRooms }) {
 
   // Auto-scroll
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (initialLoadRef.current) {
+      messagesEndRef.current?.scrollIntoView();
+      initialLoadRef.current = false;
+    }
   }, [messages]);
 
   const handleSendMessage = async () => {
@@ -127,9 +142,55 @@ function ChatWindow({ selectedChat, refreshRooms }) {
     }
   };
 
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      if (container.scrollTop === 0) {
+        loadOlderMessages();
+      }
+    };
+
+    container.addEventListener("scroll", handleScroll);
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+    };
+
+  }, [nextCursor]);
+
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       handleSendMessage();
+    }
+  };
+
+  const loadOlderMessages = async () => {
+    if (!nextCursor || loadingOlder) return;
+
+    try {
+      setLoadingOlder(true);
+
+      const container = messagesContainerRef.current;
+      const previousHeight = container.scrollHeight;
+
+      const res = await API.get(nextCursor);
+
+      const olderMessages = res.data.results.reverse();
+
+      setMessages(prev => [...olderMessages, ...prev]);
+      setNextCursor(res.data.next);
+
+      setTimeout(() => {
+        const newHeight = container.scrollHeight;
+        container.scrollTop = newHeight - previousHeight;
+      }, 0);
+
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setLoadingOlder(false);
     }
   };
 
@@ -143,7 +204,7 @@ function ChatWindow({ selectedChat, refreshRooms }) {
   }
 
   return (
-    <div className="flex-1 bg-gray-900 flex flex-col">
+    <div ref={messagesContainerRef} className="flex-1 bg-gray-900 flex flex-col">
       
       {/* Header */}
       <div className="flex justify-between items-center border-b border-gray-700 p-4">
