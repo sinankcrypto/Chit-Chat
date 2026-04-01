@@ -10,9 +10,11 @@ from .models import ChatRoom, Message, ChatFile
 from .serializers import ChatRoomSerializer, MessageSerializer
 from .pagination import MessageCursorPagination
 from .utils.presence import get_online_users
+import logging
 
 User = get_user_model()
 
+logger = logging.getLogger(__name__)
 
 class ChatRoomView(APIView):
     permission_classes = [IsAuthenticated]
@@ -60,6 +62,8 @@ class RoomMessagesView(APIView):
             sender=request.user
         )
 
+        first_unread = unread_messages.order_by("timestamp").first()
+
         request.user.read_messages.add(*unread_messages)
         
         messages = room.messages.order_by("-timestamp")
@@ -73,7 +77,11 @@ class RoomMessagesView(APIView):
             context={"request": request}
         )
 
-        return paginator.get_paginated_response(serializer.data)
+        response = paginator.get_paginated_response(serializer.data)
+
+        response.data["first_unread_id"] = first_unread.id if first_unread else None
+
+        return response
     
 class AddUsersToGroupView(APIView):
     permission_classes = [IsAuthenticated]
