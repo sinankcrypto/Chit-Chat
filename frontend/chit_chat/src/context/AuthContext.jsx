@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import API from "../services/api";
+import { requestNotificationPermission } from "../utils/requestNotificationPermission";
 
 const AuthContext = createContext();
 
@@ -17,6 +18,8 @@ export const AuthProvider = ({ children }) => {
   const login = (userData) => {
     localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
+      
+    requestNotificationPermission();
   };
 
   const logout = async () => {
@@ -29,6 +32,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
     setUser(null);
   };
+
 
   return (
     <AuthContext.Provider value={{ user, login, logout }}>

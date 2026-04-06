@@ -4,10 +4,12 @@ import GroupInfoModal from "./GroupInfoModal";
 import EmojiPicker from "emoji-picker-react";
 import { usePresence } from "../context/PresenceContext";
 import { useAuth } from "../context/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
+import { Bell } from "lucide-react"
 
 const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 
-function ChatWindow({ selectedChat, refreshRooms }) {
+function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const socketRef = useRef(null);
@@ -26,6 +28,9 @@ function ChatWindow({ selectedChat, refreshRooms }) {
 
   const [firstUnreadId, setFirstUnreadId] = useState(null);
   const firstUnreadRef = useRef(null);
+
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { notifications, unreadCount, markRead, markAllRead } = useNotifications();
 
   const { onlineUsers } = usePresence();
 
@@ -216,8 +221,77 @@ function ChatWindow({ selectedChat, refreshRooms }) {
 
   if (!selectedChat) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-900 text-gray-400">
-        <h2>Select a chat to start messaging 💬</h2>
+      <div className="flex-1 bg-gray-900 text-gray-400 relative">
+
+        {/* Top bar */}
+        <div className="flex justify-end p-4">
+
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="bg-gray-800 px-3 py-2 rounded hover:bg-gray-700 relative"
+          >
+            <Bell size={20} />
+
+            {unreadCount > 0 && (
+              <span className="absolute -top-2 -right-2 bg-red-500 text-xs px-2 rounded-full">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Notification Dropdown */}
+          {showNotifications && (
+            <div className="absolute top-14 right-4 w-80 bg-gray-800 rounded shadow-lg border border-gray-700 max-h-96 overflow-y-auto">
+
+              <div className="flex justify-between items-center p-3 border-b border-gray-700">
+                <h3 className="text-sm font-semibold">Notifications</h3>
+
+                {notifications.length > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    className="text-xs text-indigo-400 hover:underline"
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+
+              {notifications.length === 0 && (
+                <p className="p-4 text-sm text-gray-400 text-center">
+                  No notifications
+                </p>
+              )}
+
+              {notifications.map((n) => (
+                <div
+                  key={n.id}
+                  className="p-3 border-b border-gray-700 flex justify-between items-center hover:bg-gray-700"
+                >
+                  <div className="text-sm">
+                    <p className="font-medium">{n.sender}</p>
+                    <p className="text-gray-400 text-xs">
+                      {n.message?n.message:"New message"}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => markRead(n.id)}
+                    className="text-green-400 text-sm"
+                  >
+                    ✓
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+        </div>
+
+        {/* Center content */}
+        <div className="flex items-center justify-center h-full">
+          <h2>Select a chat to start messaging 💬</h2>
+        </div>
+
       </div>
     );
   }
@@ -244,6 +318,15 @@ function ChatWindow({ selectedChat, refreshRooms }) {
             Group Info
           </button>
         )}
+
+        {/* Close chat */}
+        <button
+          onClick={() => setSelectedChat(null)} // or setSelectedChat(null) if parent controls it
+          className="text-gray-400 hover:text-white text-lg"
+        >
+          ✕
+        </button>
+
       </div>
 
       {/* Messages */}

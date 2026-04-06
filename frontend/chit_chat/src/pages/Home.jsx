@@ -5,9 +5,11 @@ import { useReducer, useRef, useState } from "react";
 import { useEffect } from "react";
 import API from "../services/api";
 import { usePresence } from "../context/PresenceContext";
+import { useNotifications } from "../context/NotificationContext";
+import { useTabVisibility } from "../hooks/useTabVisibility";
 
 function Home() {
-  const [selectedChat, setSelectedChat] = useState(null);
+  const { selectedChat, setSelectedChat } = useNotifications();
   const [rooms, setRooms] = useState([]);
   const { onlineUsers } = usePresence();
 
@@ -46,6 +48,7 @@ function Home() {
       />
       <ChatWindow
        selectedChat={selectedChat}
+       setSelectedChat={setSelectedChat}
        refreshRooms={fetchRooms} 
       />
     </div>
