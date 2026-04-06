@@ -89,7 +89,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "notification_id": notification.id,
                     "sender": self.user.username,
                     "room_id": self.room.id,
-                    "message": saved_message.content or "Attachment"
+                    "message": saved_message.content or "Attachment",
+                    "message_id": saved_message.id
                 }
             )
 
@@ -178,12 +179,20 @@ class PresenceConsumer(AsyncWebsocketConsumer):
         
         await self.accept()
 
+        #global presence group
         await self.channel_layer.group_add(
             "presence",
             self.channel_name
         )
 
+        #personal notification group
+        await self.channel_layer.group_add(
+            f"user_{self.user.id}",
+            self.channel_name
+        )
+
         await database_sync_to_async(set_user_online)(self.user.id)
+
         logger.info(f"Added to online users: {self.user}")
 
         await self.channel_layer.group_send(
@@ -215,6 +224,11 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
+        await self.channel_layer.group_discard(
+            f"user_{self.user.id}",
+            self.channel_name
+        )
+
     async def presence_event(self, event):
         await self.send(text_data=json.dumps({
             "type": "presence",
@@ -228,5 +242,6 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             "notification_id": event["notification_id"],
             "sender": event["sender"],
             "room_id": event["room_id"],
+            "message": event["message"],
             "message_id" : event["message_id"]
         }))
