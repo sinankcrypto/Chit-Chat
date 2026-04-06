@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config
+from decouple import config, Csv
 from datetime import timedelta
 import os
 
@@ -173,6 +173,8 @@ CORS_ALLOWED_ORIGINS = config(
     default="http://localhost:5173",
     cast=lambda v: [s.strip() for s in v.split(",")]
 )
+
+CSRF_TRUSTED_ORIGINS = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
 
 CORS_ALLOW_CREDENTIALS = True
 
