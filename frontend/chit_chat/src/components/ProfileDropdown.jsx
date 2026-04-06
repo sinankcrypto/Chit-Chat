@@ -20,7 +20,7 @@ function ProfileDropdown() {
   };
 
   return (
-    <div className="relative">
+    <div className="relative z-50">
       <FaUserCircle
         className="text-3xl text-white cursor-pointer"
         onClick={() => setOpen(!open)}
