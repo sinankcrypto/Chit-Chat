@@ -7,6 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.contrib.auth import get_user_model
+from django.conf import settings    
 
 from .serializers import RegisterSerializer, VerifyOTPSerializer, LoginSerializer, UserSearchSerializer
 from .repository.emailOTP_repository import EmailOTPRepository
@@ -49,16 +50,16 @@ class VerifyOTPView(APIView):
             key="access_token",
             value=str(access_token),
             httponly=True,
-            secure=False,
-            samesite="Lax",
+            secure=settings.SESSION_COOKIE_SECURE,
+            samesite=settings.SESSION_COOKIE_SAMESITE,
         )
 
         response.set_cookie(
             key="refresh_token",
             value=str(refresh),
             httponly=True,
-            secure=False,
-            samesite="Lax", 
+            secure=settings.SESSION_COOKIE_SECURE,
+            samesite=settings.SESSION_COOKIE_SAMESITE,
         )
 
         return response
@@ -82,16 +83,16 @@ class LoginView(APIView):
             key="access_token",
             value=str(access_token),
             httponly=True,
-            secure=False,
-            samesite="Lax",
+            secure=settings.SESSION_COOKIE_SECURE,
+            samesite=settings.SESSION_COOKIE_SAMESITE,
         )
 
         response.set_cookie(
             key="refresh_token",
             value=str(refresh),
             httponly=True,
-            secure=False,
-            samesite="Lax",
+            secure=settings.SESSION_COOKIE_SECURE,
+            samesite=settings.SESSION_COOKIE_SAMESITE,
         )
 
         return response
@@ -121,8 +122,8 @@ class RefreshTokenView(APIView):
             key="access_token",
             value=str(access_token),
             httponly=True,
-            secure=False,
-            samesite="Lax",
+            secure=settings.SESSION_COOKIE_SECURE,
+            samesite=settings.SESSION_COOKIE_SAMESITE,
         )
 
         return response
