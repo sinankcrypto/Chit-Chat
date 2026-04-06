@@ -4,12 +4,17 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
+import mimetypes
 
-from .models import ChatRoom, Message
+from .models import ChatRoom, Message, ChatFile
 from .serializers import ChatRoomSerializer, MessageSerializer
+from .pagination import MessageCursorPagination
+from .utils.presence import get_online_users
+import logging
 
 User = get_user_model()
 
+logger = logging.getLogger(__name__)
 
 class ChatRoomView(APIView):
     permission_classes = [IsAuthenticated]
@@ -57,12 +62,26 @@ class RoomMessagesView(APIView):
             sender=request.user
         )
 
+        first_unread = unread_messages.order_by("timestamp").first()
+
         request.user.read_messages.add(*unread_messages)
         
-        messages = room.messages.order_by("timestamp")
-        serializer = MessageSerializer(messages, many=True)
+        messages = room.messages.order_by("-timestamp")
 
-        return Response(serializer.data)
+        paginator = MessageCursorPagination()
+        paginated_messages = paginator.paginate_queryset(messages, request)
+
+        serializer = MessageSerializer(
+            paginated_messages,
+            many=True,
+            context={"request": request}
+        )
+
+        response = paginator.get_paginated_response(serializer.data)
+
+        response.data["first_unread_id"] = first_unread.id if first_unread else None
+
+        return response
     
 class AddUsersToGroupView(APIView):
     permission_classes = [IsAuthenticated]
@@ -103,3 +122,61 @@ class RemoveUserFromGroupView(APIView):
         room.participants.remove(user)
 
         return Response({"message": "User removed successfully"})
+    
+class UploadChatFileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, room_id):
+        room = get_object_or_404(ChatRoom, id=room_id)
+
+        if not room.participants.filter(id=request.user.id).exists():
+            return Response(
+                {"error": "Not authorized"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+    
+        file = request.FILES.get("file")
+
+        if not file:
+            return Response(
+                {"error": "No file uploaded"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        file_type, _ = mimetypes.guess_type(file.name)
+
+        if file_type and file_type.startswith("image"):
+            file_category  = "image"
+        elif file_type and file_type.startswith("video"):
+            file_category  = "video"
+        else:
+            file_category  = "file"
+
+        chat_file = ChatFile.objects.create(
+            file=file,
+            uploaded_by=request.user,
+            file_type=file_category,
+            size=file.size
+        )
+
+        return Response(
+            {
+                "file_id": chat_file.id,
+                "file_url": chat_file.file.url,
+                "file_type": chat_file.file_type,
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+class OnlineUsersView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        
+        users = get_online_users()
+
+        users = [int(u) for u in users]
+
+        return Response({
+            "online_users": users
+        })

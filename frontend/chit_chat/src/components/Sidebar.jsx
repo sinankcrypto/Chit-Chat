@@ -4,11 +4,13 @@ import ProfileDropdown from "./ProfileDropdown";
 import { useState } from "react";
 import CreateGroupModal from "./CreateGroupModal";
 import API from "../services/api";
+import { usePresence } from "../context/PresenceContext";
 
-function Sidebar({ selectedChat, onSelectChat, refreshRooms, rooms  }) {
+function Sidebar({ selectedChat, onSelectChat, refreshRooms, rooms }) {
   const [showModal, setShowModal] = useState(false);  
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
+  const { onlineUsers } = usePresence();
 
   // 🔎 Search users
   const searchUsers = async (value) => {

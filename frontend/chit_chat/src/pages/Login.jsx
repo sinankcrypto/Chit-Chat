@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 function Login() {
   const navigate = useNavigate();
@@ -18,11 +19,13 @@ function Login() {
     });
   };
 
+  const { login } = useAuth();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       const res = await API.post("/auth/login/", formData);
-      localStorage.setItem("username", res.data.user);
+      login(res.data.user)
 
       toast.success("Login successful!");
       navigate("/chat");

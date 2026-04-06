@@ -1,13 +1,17 @@
 import Logo from "../components/Logo";
 import Sidebar from "../components/Sidebar";
 import ChatWindow from "../components/ChatWindow";
-import { useState } from "react";
+import { useReducer, useRef, useState } from "react";
 import { useEffect } from "react";
 import API from "../services/api";
+import { usePresence } from "../context/PresenceContext";
+import { useNotifications } from "../context/NotificationContext";
+import { useTabVisibility } from "../hooks/useTabVisibility";
 
 function Home() {
-  const [selectedChat, setSelectedChat] = useState(null);
+  const { selectedChat, setSelectedChat } = useNotifications();
   const [rooms, setRooms] = useState([]);
+  const { onlineUsers } = usePresence();
 
   const fetchRooms = async () => {
     try {
@@ -20,7 +24,7 @@ function Home() {
 
   useEffect(() => {
     fetchRooms();
-  }, []); 
+  }, []);
 
   const handleSelectChat = async (room) => {
     setSelectedChat(room);
@@ -29,16 +33,24 @@ function Home() {
     await fetchRooms();
   };
 
+    useEffect(() => {
+      console.log("online users updated:", onlineUsers);
+    }, [onlineUsers]);
+
 
   return (
     <div className="flex h-screen">
       <Sidebar
         rooms={rooms}
         selectedChat={selectedChat}
-        onSelectChat={handleSelectChat} 
+        onSelectChat={handleSelectChat}
         refreshRooms={fetchRooms}
       />
-      <ChatWindow selectedChat={selectedChat} refreshRooms={fetchRooms}/>
+      <ChatWindow
+       selectedChat={selectedChat}
+       setSelectedChat={setSelectedChat}
+       refreshRooms={fetchRooms} 
+      />
     </div>
   );
 }
