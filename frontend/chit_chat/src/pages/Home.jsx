@@ -39,7 +39,7 @@ function Home() {
 
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen overflow-hidden">
       <Sidebar
         rooms={rooms}
         selectedChat={selectedChat}
