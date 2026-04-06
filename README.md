@@ -1,4 +1,5 @@
-ChitChat – Real-Time Chat Application
+💬 ChitChat – Real-Time Chat Application
+
 ChitChat is a modern real-time chat application built with Django Channels and React. It supports instant messaging, media sharing, real-time notifications, and user presence tracking. The application provides a seamless chatting experience similar to modern messaging platforms.
 
 🚀 Features
