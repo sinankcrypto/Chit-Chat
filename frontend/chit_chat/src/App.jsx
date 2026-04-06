@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
-import Signup from "./pages/SignUp";
+import Signup from "./pages/Signup";
 import VerifyOtp from "./pages/VerifyOtp";
 import Home from "./pages/Home";
 import { Toaster } from "react-hot-toast";
