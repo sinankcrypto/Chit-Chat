@@ -17,7 +17,9 @@ export const NotificationProvider = ({ children }) => {
   const [selectedChat, setSelectedChat] = useState(null);
   const selectedChatRef = useRef(null);
 
+  
   const isTabVisible = useTabVisibility();
+  const visibilityRef = useRef(isTabVisible)
 
   const {user} = useAuth();
 
@@ -25,6 +27,11 @@ export const NotificationProvider = ({ children }) => {
     selectedChatRef.current = selectedChat;
   }, [selectedChat])
   const socketRef = useRef(null);
+
+  useEffect(() => {
+    console.log("React visibility state:", isTabVisible);
+    visibilityRef.current = isTabVisible;
+  }, [isTabVisible]);
 
   useEffect(() => {
     if (!user) return;
@@ -36,11 +43,11 @@ export const NotificationProvider = ({ children }) => {
 
       if (data.type === "notification") {
 
-        console.log(`notification recieved, tab visible: ${isTabVisible}`)
+        console.log(`notification recieved, tab visible: ${visibilityRef.current}`)
 
         const currentChat = selectedChatRef.current;
 
-        if (isTabVisible){
+        if (visibilityRef.current){
           if(!currentChat || currentChat.id !== data.room_id){
             toast(`${data.sender}: ${data.message}`, {
               icon: "💬",
