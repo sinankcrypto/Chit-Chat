@@ -2,13 +2,14 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import API from "../services/api";
 import { useActionData } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import { useSocket } from "./SocketContext";
 
 const PresenceContext = createContext();
 
 export const PresenceProvider = ({ children }) => {
   const [onlineUsers, setOnlineUsers] = useState(new Set());
-  const presenceSocket = useRef(null);
   const { user } = useAuth();
+  const { socketRef } = useSocket();
 
   const fetchOnlineUsers = async () => {
     try {
@@ -19,33 +20,22 @@ export const PresenceProvider = ({ children }) => {
     }
   };
 
-  const disconnectPresence = () => {
-    if (presenceSocket.current) {
-      presenceSocket.current.close();
-      presenceSocket.current = null;
-      console.log("Presence socket manually closed");
+  useEffect(() => {
+    if (user){
+      fetchOnlineUsers();
     }
-  };
+  }, [user]);
+
+  // Listen to socket events
 
   useEffect(() => {
-    if (!user) return;
+    const socket = socketRef.current;
+    if (!socket) return;
 
-    fetchOnlineUsers();
-
-    if (presenceSocket.current) return;
-
-    presenceSocket.current = new WebSocket(
-      `${import.meta.env.VITE_WS_BASE_URL}/presence/`
-    );
-
-    presenceSocket.current.onopen = () => {
-      console.log("Presence connected");
-    };
-
-    presenceSocket.current.onmessage = (event) => {
+    const handleMessage = (event) => {
       const data = JSON.parse(event.data);
 
-      if (data.type === "presence") {
+      if (data.type === "presence"){
         setOnlineUsers((prev) => {
           const updated = new Set(prev);
 
@@ -60,24 +50,18 @@ export const PresenceProvider = ({ children }) => {
       }
     };
 
-    presenceSocket.current.onclose = () => {
-      console.log("Presence disconnected");
-      presenceSocket.current = null;
-    };
+    socket.addEventListener("message", handleMessage);
 
     return () => {
-      presenceSocket.current?.close();
-      presenceSocket.current = null;
+      socket.removeEvenetListener("message", handleMessage);
     };
-  }, [user]);
+  }, [socketRef.current]);
 
   return (
-    <PresenceContext.Provider value={{ onlineUsers, setOnlineUsers, disconnectPresence }}>
+    <PresenceContext.Provider value={{ onlineUsers }}>
       {children}
     </PresenceContext.Provider>
   );
 };
 
-export const usePresence = () => {
-  return useContext(PresenceContext);
-};
+export const usePresence = () => useContext(PresenceContext);

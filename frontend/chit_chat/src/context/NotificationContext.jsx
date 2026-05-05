@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { useTabVisibility } from "../hooks/useTabVisibility";
 import { showPushNotification } from "../utils/showPushNotification";
 import { useAuth } from "./AuthContext";
+import { useSocket } from "./SocketContext";
 
 const NotificationContext = createContext();
 
@@ -22,11 +23,11 @@ export const NotificationProvider = ({ children }) => {
   const visibilityRef = useRef(isTabVisible)
 
   const {user} = useAuth();
+  const { socketRef } = useSocket();
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
   }, [selectedChat])
-  const socketRef = useRef(null);
 
   useEffect(() => {
     console.log("React visibility state:", isTabVisible);
@@ -34,21 +35,17 @@ export const NotificationProvider = ({ children }) => {
   }, [isTabVisible]);
 
   useEffect(() => {
-    if (!user) return;
+    const socket = socketRef.current;
+    if (!socket) return;
 
-    socketRef.current = new WebSocket(`${WS_URL}/presence/`);
-
-    socketRef.current.onmessage = (event) => {
+    const handleMessage = (event) => {
       const data = JSON.parse(event.data);
 
       if (data.type === "notification") {
-
-        console.log(`notification recieved, tab visible: ${visibilityRef.current}`)
-
         const currentChat = selectedChatRef.current;
 
-        if (visibilityRef.current){
-          if(!currentChat || currentChat.id !== data.room_id){
+        if (visibilityRef.current) {
+          if (!currentChat || currentChat.id !== data.room_id) {
             toast(`${data.sender}: ${data.message}`, {
               icon: "💬",
             });
@@ -73,11 +70,18 @@ export const NotificationProvider = ({ children }) => {
           ...prev
         ]);
       }
+
+      if (data.type === "room_created") {
+        console.log("New room recieved:", data.room);
+      }
     };
 
-    return () => socketRef.current.close();
+    socket.addEventListener("message", handleMessage);
 
-  }, [user]);
+    return () => {
+      socket.removeEventListener("message", handleMessage);
+    };
+  }, [socketRef.current]);
 
   useEffect(() => {
 
