@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../services/api";
 import toast from "react-hot-toast";
 
-function GroupInfoModal({ room, onClose, refreshRooms }) {
+function GroupInfoModal({ room, onClose }) {
   const [members, setMembers] = useState(room.participants || []);
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -26,8 +26,6 @@ function GroupInfoModal({ room, onClose, refreshRooms }) {
       users: [userId],
     });
     toast.success("Added user successfully")
-
-    await refreshRooms();
     onClose();
   };
 
@@ -37,8 +35,6 @@ function GroupInfoModal({ room, onClose, refreshRooms }) {
       user: userId,
     });
     toast.success("Removed user successfully")
-
-    await refreshRooms();
     onClose();
   };
 

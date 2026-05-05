@@ -9,7 +9,7 @@ import { Bell } from "lucide-react"
 
 const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 
-function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
+function ChatWindow({ selectedChat, setSelectedChat }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const socketRef = useRef(null);
@@ -89,9 +89,6 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
           room_id: selectedChat.id,
         })
       );
-
-      // refresh sidebar data
-      await refreshRooms?.();
     };
 
     socketRef.current.onclose = () => console.log("Chat disconnected");
@@ -549,7 +546,6 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
         <GroupInfoModal
           room={selectedChat}
           onClose={() => setShowGroupInfo(false)}
-          refreshRooms={refreshRooms}
         />
       )}
 

@@ -6,7 +6,7 @@ import CreateGroupModal from "./CreateGroupModal";
 import API from "../services/api";
 import { usePresence } from "../context/PresenceContext";
 
-function Sidebar({ selectedChat, onSelectChat, refreshRooms, rooms }) {
+function Sidebar({ selectedChat, onSelectChat, rooms }) {
   const [showModal, setShowModal] = useState(false);  
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -53,7 +53,6 @@ function Sidebar({ selectedChat, onSelectChat, refreshRooms, rooms }) {
       setSearchTerm("");
       setSearchResults([]);
 
-      await refreshRooms();      // refresh sidebar
       onSelectChat(room);        // auto open chat
 
     } catch (err) {

@@ -7,30 +7,15 @@ import API from "../services/api";
 import { usePresence } from "../context/PresenceContext";
 import { useNotifications } from "../context/NotificationContext";
 import { useTabVisibility } from "../hooks/useTabVisibility";
+import { useChat } from "../context/chatContext";
 
 function Home() {
   const { selectedChat, setSelectedChat } = useNotifications();
-  const [rooms, setRooms] = useState([]);
+  const { rooms } = useChat();
   const { onlineUsers } = usePresence();
-
-  const fetchRooms = async () => {
-    try {
-      const res = await API.get("/chat/rooms/");
-      setRooms(res.data);
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  useEffect(() => {
-    fetchRooms();
-  }, []);
 
   const handleSelectChat = async (room) => {
     setSelectedChat(room);
-
-    // refetch rooms to update unread_count
-    await fetchRooms();
   };
 
     useEffect(() => {
@@ -44,12 +29,10 @@ function Home() {
         rooms={rooms}
         selectedChat={selectedChat}
         onSelectChat={handleSelectChat}
-        refreshRooms={fetchRooms}
       />
       <ChatWindow
        selectedChat={selectedChat}
        setSelectedChat={setSelectedChat}
-       refreshRooms={fetchRooms} 
       />
     </div>
   );
