@@ -1,6 +1,6 @@
 import { useNotifications } from "../context/NotificationContext";
 
-export const showPushNotification = ({ title, body, room_id }) => {
+export const showPushNotification = ({ title, body, onclick }) => {
     if (!("Notification" in window)) return;
 
     if (Notification.permission !== "granted") return;
@@ -16,9 +16,8 @@ export const showPushNotification = ({ title, body, room_id }) => {
     notification.onclick = () => {
         window.focus();
 
-        if (room_id) {
-            window.location.href = `/chat`;
-            setSelectedChat(room_id)
-        } 
+        if (onClick) {
+            onClick();
+        }
     };
 };

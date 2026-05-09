@@ -54,7 +54,10 @@ export const NotificationProvider = ({ children }) => {
           showPushNotification({
             title: data.sender,
             body: data.message,
-            room_id: data.room_id
+            onClick: () => {
+              navigate("/chat");
+              setSelectedChat(data.room_id);
+            },
           });
         }
 
