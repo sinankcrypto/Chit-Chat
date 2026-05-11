@@ -8,26 +8,33 @@ import { PresenceProvider } from "./context/PresenceContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { SocketProvider } from "./context/SocketContext";
 import { ChatProvider } from "./context/chatContext";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
   return (
-    <SocketProvider>
-      <ChatProvider>
-        <PresenceProvider>
-          <NotificationProvider>
-            <Router>
-              <Toaster position="top-right" reverseOrder={false}/>
-              <Routes>
-                <Route path="/" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/verify-otp" element={<VerifyOtp />} />
-                <Route path="/chat" element={<Home />} />
-              </Routes> 
-            </Router>
-          </NotificationProvider>
-        </PresenceProvider>
-      </ChatProvider>
-    </SocketProvider>   
+    <Router>
+      <SocketProvider>
+        <ChatProvider>
+          <PresenceProvider>
+            <NotificationProvider>
+                <Toaster position="top-right" reverseOrder={false}/>
+                <Routes>
+                  <Route path="/" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/verify-otp" element={<VerifyOtp />} />
+                  <Route path="/chat" element={
+                    <ProtectedRoute>
+                      <Home />
+                    </ProtectedRoute>
+                    } 
+                  />
+                </Routes> 
+            </NotificationProvider>
+          </PresenceProvider>
+        </ChatProvider>
+      </SocketProvider>
+    </Router>
+       
   );
 }
 
