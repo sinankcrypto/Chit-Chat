@@ -1,18 +1,24 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import API from "../services/api";
 import { requestNotificationPermission } from "../utils/requestNotificationPermission";
+import toast, { useToasterStore } from "react-hot-toast";
+import { setLogoutHandler } from "../services/authService";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Load user on app start
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
+
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
+
+    setLoading(false);
   }, []);
 
   const login = (userData) => {
@@ -31,11 +37,16 @@ export const AuthProvider = ({ children }) => {
 
     localStorage.removeItem("user");
     setUser(null);
+    toast.success("Logged out successfully")
   };
+
+  useEffect(() => {
+    setLogoutHandler(logout);
+  }, [])
 
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import API from "../services/api";
 import { useAuth } from "./AuthContext";
 import { useSocket } from "./SocketContext";
@@ -9,6 +9,31 @@ export const ChatProvider = ({ children }) => {
     const [rooms, setRooms] = useState([]);
     const { user } = useAuth();
     const { socketRef } = useSocket();
+
+    const [selectedChat, setSelectedChat] = useState(null);
+    const selectedChatRef = useRef(null);
+
+    const openChat = (room) => {
+        setSelectedChat(room);
+
+        setRooms(prev => 
+            prev.map(r => 
+                r.id === room.id? {...r, unread_count:0}: r
+            )
+        );
+    };
+
+    const closeChat = () => {
+        setSelectedChat(null);
+    };
+
+    const updateRoomLocally = (updatedRoom) => {
+        setRooms(prev => 
+            prev.map(room => 
+                room.id === updatedRoom.id?updatedRoom: room
+            )
+        );
+    };
 
     useEffect(() => {
         const fetchRooms = async () => {
@@ -24,6 +49,10 @@ export const ChatProvider = ({ children }) => {
             fetchRooms();
         }
     }, [user]);
+
+    useEffect(() => {
+        selectedChatRef.current = selectedChat;
+    }, [selectedChat])
 
     useEffect(() => {
         const socket = socketRef.current;
@@ -43,23 +72,13 @@ export const ChatProvider = ({ children }) => {
                 });
             }
 
-            if (data.type === "message_recieved") {
-                const { room_id, message } = data;
-
-                setRooms((prev) => 
-                    prev.map((room) => {
-                        if (room.id !== room_id) return room;
-
-                        return {
-                            ...room,
-                            last_message: {
-                                content: message.content,
-                                timestamp: message.timestamp,
-                                sender: message.sender
-                            },
-                            unread_count: (room.unread_count || 0) + 1
-                        };
-                    })
+            if (data.type === "room_updated") {
+                setRooms(prev =>
+                    prev.map(room =>
+                    room.id === data.room.id
+                        ? data.room
+                        : room
+                    )
                 );
             }
 
@@ -72,16 +91,9 @@ export const ChatProvider = ({ children }) => {
         };
     }, [socketRef.current]);
 
-    const updateRoomLocally = (updatedRoom) => {
-        setRooms(prev => 
-            prev.map(room => 
-                room.id === updatedRoom.id?updatedRoom: room
-            )
-        );
-    };
-
     return (
-        <ChatContext.Provider value={{ rooms, setRooms, updateRoomLocally }}>
+        <ChatContext.Provider 
+            value={{ rooms, setRooms, updateRoomLocally, selectedChat, selectedChatRef, openChat, closeChat }}>
             {children}
         </ChatContext.Provider>
     );

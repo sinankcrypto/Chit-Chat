@@ -53,7 +53,7 @@ export const PresenceProvider = ({ children }) => {
     socket.addEventListener("message", handleMessage);
 
     return () => {
-      socket.removeEvenetListener("message", handleMessage);
+      socket.removeEventListener("message", handleMessage);
     };
   }, [socketRef.current]);
 

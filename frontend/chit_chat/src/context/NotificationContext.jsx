@@ -5,6 +5,8 @@ import { useTabVisibility } from "../hooks/useTabVisibility";
 import { showPushNotification } from "../utils/showPushNotification";
 import { useAuth } from "./AuthContext";
 import { useSocket } from "./SocketContext";
+import { useChat } from "./chatContext";
+import { useNavigate } from "react-router-dom"
 
 const NotificationContext = createContext();
 
@@ -15,8 +17,7 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const [selectedChat, setSelectedChat] = useState(null);
-  const selectedChatRef = useRef(null);
+  const { rooms, selectedChat, selectedChatRef, openChat } =  useChat();
 
   
   const isTabVisible = useTabVisibility();
@@ -25,9 +26,7 @@ export const NotificationProvider = ({ children }) => {
   const {user} = useAuth();
   const { socketRef } = useSocket();
 
-  useEffect(() => {
-    selectedChatRef.current = selectedChat;
-  }, [selectedChat])
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.log("React visibility state:", isTabVisible);
@@ -49,19 +48,21 @@ export const NotificationProvider = ({ children }) => {
             toast(`${data.sender}: ${data.message}`, {
               icon: "💬",
             });
+            setUnreadCount(prev => prev + 1);
           }
         } else {
+          const room = rooms.find(r => r.id === data.room_id);
           showPushNotification({
             title: data.sender,
             body: data.message,
             onClick: () => {
               navigate("/chat");
-              setSelectedChat(data.room_id);
+              openChat(room)
             },
           });
-        }
 
-        setUnreadCount(prev => prev + 1);
+          setUnreadCount(prev => prev + 1);
+        }
 
         setNotifications(prev => [
           {
@@ -144,9 +145,7 @@ export const NotificationProvider = ({ children }) => {
         notifications,
         unreadCount,
         markRead,
-        markAllRead,
-        selectedChat,
-        setSelectedChat
+        markAllRead
       }}
     >
       {children}
