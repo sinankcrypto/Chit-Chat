@@ -6,10 +6,12 @@ import { usePresence } from "../context/PresenceContext";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
 import { Bell } from "lucide-react"
+import React from "react";
+import { useChat } from "../context/chatContext";
 
 const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 
-function ChatWindow({ selectedChat, setSelectedChat }) {
+function ChatWindow({ selectedChat }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const socketRef = useRef(null);
@@ -36,7 +38,9 @@ function ChatWindow({ selectedChat, setSelectedChat }) {
 
   const { user } = useAuth()
 
-  const currentUserUsername = user;
+  const currentUserUsername = user.username;
+
+  const { closeChat } = useChat();
 
   const otherUser = selectedChat?.participants?.find(
     (p) => p.username !== currentUserUsername
@@ -154,6 +158,7 @@ function ChatWindow({ selectedChat, setSelectedChat }) {
           file_id: file_id,
         })
       );
+      console.log("message sent")
 
       setNewMessage("");
       setFile(null);
@@ -318,7 +323,7 @@ function ChatWindow({ selectedChat, setSelectedChat }) {
 
         {/* Close chat */}
         <button
-          onClick={() => setSelectedChat(null)} // or setSelectedChat(null) if parent controls it
+          onClick={closeChat} 
           className="text-gray-400 hover:text-white text-lg"
         >
           ✕
@@ -330,7 +335,7 @@ function ChatWindow({ selectedChat, setSelectedChat }) {
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg, index) => {
           const sender = msg.sender;
-          const isOwn = msg.is_me? msg.is_me: sender==currentUserUsername;
+          const isOwn = msg.is_me ?? (sender === currentUserUsername);
           const fileUrl = msg.file_url
           ? `${import.meta.env.VITE_API_BASE_URL}${msg.file_url}`
           : null;
@@ -338,7 +343,7 @@ function ChatWindow({ selectedChat, setSelectedChat }) {
           const isFirstUnread = msg.id === firstUnreadId;
 
           return (
-            <>
+            <React.Fragment key={msg.id}>
               {isFirstUnread && (
                 <div className="flex justify-center my-3">
                   <div className="bg-red-500 text-white text-xs px-3 py-1 rounded-full">
@@ -435,7 +440,7 @@ function ChatWindow({ selectedChat, setSelectedChat }) {
                   </p>
                 </div>
               </div>
-            </>
+            </React.Fragment>
           );
         })}
         <div ref={messagesEndRef} />

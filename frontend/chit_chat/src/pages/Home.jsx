@@ -10,17 +10,16 @@ import { useTabVisibility } from "../hooks/useTabVisibility";
 import { useChat } from "../context/chatContext";
 
 function Home() {
-  const { selectedChat, setSelectedChat } = useNotifications();
-  const { rooms } = useChat();
+  const { rooms, selectedChat, openChat } = useChat();
   const { onlineUsers } = usePresence();
 
   const handleSelectChat = async (room) => {
     setSelectedChat(room);
   };
 
-    useEffect(() => {
-      console.log("online users updated:", onlineUsers);
-    }, [onlineUsers]);
+  useEffect(() => {
+    console.log("online users updated:", onlineUsers);
+  }, [onlineUsers]);
 
 
   return (
@@ -28,11 +27,10 @@ function Home() {
       <Sidebar
         rooms={rooms}
         selectedChat={selectedChat}
-        onSelectChat={handleSelectChat}
+        onSelectChat={openChat}
       />
       <ChatWindow
        selectedChat={selectedChat}
-       setSelectedChat={setSelectedChat}
       />
     </div>
   );
