@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from .models import ChatRoom, Message, ChatFile
 from notification.utils.notification_utils import create_notification
 from django.shortcuts import get_object_or_404
+from .serializers import ChatRoomSerializer
 import logging
 
 from chat.utils.presence import set_user_online, set_user_offline
@@ -12,6 +13,10 @@ from chat.utils.presence import set_user_online, set_user_offline
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
+@database_sync_to_async
+def serialize_room(room, user):
+    return ChatRoomSerializer(room, context={"user": user}).data
 
 
 class ChatConsumer(AsyncWebsocketConsumer):
@@ -70,11 +75,25 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         saved_message = await self.save_message(message, message_type, file_id)
 
-        participants = await database_sync_to_async(
+        all_participants = await database_sync_to_async(
+            lambda: list(self.room.participants.all())
+        )()
+        for user in all_participants:
+            room_data = await serialize_room(self.room, user)
+
+            await self.channel_layer.group_send(
+                f"user_{user.id}",
+                {
+                    "type": "room_updated_event",
+                    "room": room_data
+                }
+            )
+
+        notification_participants = await database_sync_to_async(
             lambda: list(self.room.participants.exclude(id=self.user.id))
         )()
 
-        for user in participants:
+        for user in notification_participants:
             notification = await database_sync_to_async(create_notification)(
                 user,
                 self.user,
@@ -244,4 +263,16 @@ class PresenceConsumer(AsyncWebsocketConsumer):
             "room_id": event["room_id"],
             "message": event["message"],
             "message_id" : event["message_id"]
+        }))
+
+    async def room_created_event(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "room_created",
+            "room": event["room"]
+        }))
+
+    async def room_updated_event(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "room_updated",
+            "room": event["room"]
         }))
