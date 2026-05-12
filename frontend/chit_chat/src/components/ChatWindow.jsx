@@ -48,6 +48,8 @@ function ChatWindow({ selectedChat }) {
 
   const isOnline = onlineUsers.has(otherUser?.id);
 
+  const emojiRef = useRef(null);
+
   // Fetch old messages
   useEffect(() => {
     if (!selectedChat) return;
@@ -125,6 +127,20 @@ function ChatWindow({ selectedChat }) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 
   }, [messages, firstUnreadId]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if ( emojiRef.current && !emojiRef.current.contains(event.target)) {
+        setShowEmoji(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleSendMessage = async () => {
     if (!newMessage && !file) return;
@@ -446,16 +462,6 @@ function ChatWindow({ selectedChat }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {showEmoji && (
-        <div className="absolute bottom-20">
-          <EmojiPicker
-            onEmojiClick={(emojiData) =>
-              setNewMessage((prev) => prev + emojiData.emoji)
-            }
-          />
-        </div>
-      )}
-
       {file && (
         <div className="px-4 py-2 border-t border-gray-700 bg-gray-850 flex items-center gap-3">
 
@@ -495,13 +501,27 @@ function ChatWindow({ selectedChat }) {
       {/* Input */}
       <div className="border-t border-gray-700 p-3 flex items-center gap-2">
 
-        {/* Emoji Button */}
-        <button
-          onClick={() => setShowEmoji(!showEmoji)}
-          className="text-xl"
-        >
-          😀
-        </button>
+        <div ref={emojiRef} className="relative">
+
+          {showEmoji && (
+            <div className="absolute bottom-20">
+              <EmojiPicker
+                onEmojiClick={(emojiData) =>
+                  setNewMessage((prev) => prev + emojiData.emoji)
+                }
+              />
+            </div>
+          )}
+
+          {/* Emoji Button */}
+          <button
+            onClick={() => setShowEmoji(prev => !prev)}
+            className="text-xl"
+          >
+            😀
+          </button>
+
+        </div>
 
         {/* File Upload */}
         <label className="cursor-pointer text-xl">
