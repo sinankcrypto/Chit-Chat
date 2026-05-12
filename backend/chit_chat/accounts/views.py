@@ -171,7 +171,8 @@ class UserSearchView(APIView):
 
         users = User.objects.filter(
             Q(username__icontains=query) |
-            Q(email__icontains=query)
+            Q(email__icontains=query),
+            is_active=True
         ).exclude(
             id=request.user.id
         )[:10]  # limit results

@@ -112,7 +112,14 @@ class AddUsersToGroupView(APIView):
 
         user_ids = request.data.get("users", [])
 
-        users_to_add = User.objects.filter(id__in=user_ids)
+        existing_ids = room.participants.values_list("id", flat=True)
+
+        users_to_add = User.objects.filter(
+            id__in=user_ids,
+            is_active=True
+        ).exclude(
+            id__in=existing_ids
+        )
 
         room.participants.add(*users_to_add)
 
