@@ -7,7 +7,7 @@ import { Toaster } from "react-hot-toast";
 import { PresenceProvider } from "./context/PresenceContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { SocketProvider } from "./context/SocketContext";
-import { ChatProvider } from "./context/chatContext";
+import { ChatProvider } from "./context/ChatContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
