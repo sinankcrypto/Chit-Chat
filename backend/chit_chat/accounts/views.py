@@ -42,7 +42,10 @@ class VerifyOTPView(APIView):
         access_token = refresh.access_token
 
         response = Response(
-            {"message": "Account verified successfully.", "user": user.username},
+            {
+                "message": "Account verified successfully.",
+                "user": UserSerializer(user).data
+            },
             status=status.HTTP_200_OK,
         )
 
