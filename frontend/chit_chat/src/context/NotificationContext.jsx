@@ -4,6 +4,9 @@ import toast from "react-hot-toast";
 import { useTabVisibility } from "../hooks/useTabVisibility";
 import { showPushNotification } from "../utils/showPushNotification";
 import { useAuth } from "./AuthContext";
+import { useSocket } from "./SocketContext";
+import { useChat } from "./ChatContext";
+import { useNavigate } from "react-router-dom"
 
 const NotificationContext = createContext();
 
@@ -14,19 +17,16 @@ export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const [selectedChat, setSelectedChat] = useState(null);
-  const selectedChatRef = useRef(null);
+  const { rooms, selectedChat, selectedChatRef, openChat } =  useChat();
 
   
   const isTabVisible = useTabVisibility();
   const visibilityRef = useRef(isTabVisible)
 
   const {user} = useAuth();
+  const { socketRef } = useSocket();
 
-  useEffect(() => {
-    selectedChatRef.current = selectedChat;
-  }, [selectedChat])
-  const socketRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.log("React visibility state:", isTabVisible);
@@ -34,34 +34,35 @@ export const NotificationProvider = ({ children }) => {
   }, [isTabVisible]);
 
   useEffect(() => {
-    if (!user) return;
+    const socket = socketRef.current;
+    if (!socket) return;
 
-    socketRef.current = new WebSocket(`${WS_URL}/presence/`);
-
-    socketRef.current.onmessage = (event) => {
+    const handleMessage = (event) => {
       const data = JSON.parse(event.data);
 
       if (data.type === "notification") {
-
-        console.log(`notification recieved, tab visible: ${visibilityRef.current}`)
-
         const currentChat = selectedChatRef.current;
 
-        if (visibilityRef.current){
-          if(!currentChat || currentChat.id !== data.room_id){
+        if (visibilityRef.current) {
+          if (!currentChat || currentChat.id !== data.room_id) {
             toast(`${data.sender}: ${data.message}`, {
               icon: "💬",
             });
+            setUnreadCount(prev => prev + 1);
           }
         } else {
+          const room = rooms.find(r => r.id === data.room_id);
           showPushNotification({
             title: data.sender,
             body: data.message,
-            room_id: data.room_id
+            onClick: () => {
+              navigate("/chat");
+              openChat(room)
+            },
           });
-        }
 
-        setUnreadCount(prev => prev + 1);
+          setUnreadCount(prev => prev + 1);
+        }
 
         setNotifications(prev => [
           {
@@ -73,11 +74,18 @@ export const NotificationProvider = ({ children }) => {
           ...prev
         ]);
       }
+
+      if (data.type === "room_created") {
+        console.log("New room recieved:", data.room);
+      }
     };
 
-    return () => socketRef.current.close();
+    socket.addEventListener("message", handleMessage);
 
-  }, [user]);
+    return () => {
+      socket.removeEventListener("message", handleMessage);
+    };
+  }, [socketRef.current]);
 
   useEffect(() => {
 
@@ -137,9 +145,7 @@ export const NotificationProvider = ({ children }) => {
         notifications,
         unreadCount,
         markRead,
-        markAllRead,
-        selectedChat,
-        setSelectedChat
+        markAllRead
       }}
     >
       {children}

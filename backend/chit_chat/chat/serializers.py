@@ -20,7 +20,6 @@ class ChatRoomSerializer(serializers.ModelSerializer):
         many=True,
         read_only=True
     )
-    display_name = serializers.SerializerMethodField()
     last_message = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
 
@@ -30,7 +29,6 @@ class ChatRoomSerializer(serializers.ModelSerializer):
             "id",
             "room_type",
             "name",
-            "display_name",
             "participant_ids",
             "participants",
             "last_message",
@@ -40,7 +38,6 @@ class ChatRoomSerializer(serializers.ModelSerializer):
         read_only_fields = ["created_at"]
 
     def validate(self, attrs):
-        request = self.context["request"]
         room_type = attrs.get("room_type")
         participants = attrs.get("participant_ids",[])
     
@@ -63,7 +60,7 @@ class ChatRoomSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        request = self.context["request"]
+        user = self.context.get("user")
         participants = validated_data.pop("participant_ids")
         room_type = validated_data["room_type"]
 
@@ -73,49 +70,37 @@ class ChatRoomSerializer(serializers.ModelSerializer):
 
             existing_room = ChatRoom.objects.filter(
                 room_type="private",
-                participants=request.user
+                participants=user
             ).filter(
                 participants=other_user
             ).first()
 
             if existing_room:
+                self.context["existing"] = True
                 return existing_room
 
         room = ChatRoom.objects.create(
-            created_by=request.user,
+            created_by=user,
             **validated_data
         )
 
-        room.participants.add(request.user)
+        room.participants.add(user)
         room.participants.add(*participants)
 
         return room
-    
-    def get_display_name(self, obj):
-        request = self.context.get("request")
-
-        if obj.room_type == "group":
-            return obj.name
-
-        # PRIVATE CHAT
-        other_user = obj.participants.exclude(
-            id=request.user.id
-        ).first()
-
-        return other_user.username if other_user else "Private Chat"
 
     def get_last_message(self, obj):
         message = obj.messages.order_by("-timestamp").first()
         if message:
             return {
                 "content": message.content,
-                "timestamp": message.timestamp,
+                "timestamp": message.timestamp.isoformat(),
                 "sender": message.sender.username
             }
         return None
 
     def get_unread_count(self, obj):
-        user = self.context["request"].user
+        user = self.context.get("user")
         return obj.messages.exclude(
             read_by=user
         ).exclude(
@@ -142,7 +127,6 @@ class MessageSerializer(serializers.ModelSerializer):
         ]
 
     def get_file_url(self, obj):
-        request = self.context.get("request")
         if obj.attachment and obj.attachment.file:
             url = obj.attachment.file.url
 
@@ -151,7 +135,6 @@ class MessageSerializer(serializers.ModelSerializer):
         return None     
 
     def get_file_type(self, obj):
-        request = self.context.get("request")
         if obj.attachment and obj.attachment.file:
             file_type = obj.attachment.file_type
 

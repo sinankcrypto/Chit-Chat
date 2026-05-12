@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import API from "../services/api";
 import { usePresence } from "../context/PresenceContext";
 import { useAuth } from "../context/AuthContext";
+import { getOtherParticipant, getRoomDisplayName } from "../utils/chatHelpers";
 
 function ChatList({ rooms, onSelectChat, selectedChat  }) {
   const sortedRooms = [...rooms].sort((a, b) => {
@@ -18,10 +19,8 @@ function ChatList({ rooms, onSelectChat, selectedChat  }) {
     <div className="mt-2 space-y-1 overflow-y-auto flex-1">
       {sortedRooms.map((room) => {
         const isActive = selectedChat?.id === room.id;
-        const participants = room.participants || [];
-        const otherUser = participants.find(
-          (p) => p.username !== currentUser
-        );
+        const otherUser = getOtherParticipant(room, currentUser);
+        const roomName = getRoomDisplayName(room, currentUser);
         const isOnline = onlineUsers.has(otherUser?.id);
 
         return (
@@ -37,7 +36,7 @@ function ChatList({ rooms, onSelectChat, selectedChat  }) {
             {/* Top row */}
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span>{room.display_name}</span>
+                <span>{roomName}</span>
 
                 {isOnline && (
                   <span className="w-2 h-2 bg-green-500 rounded-full"></span>

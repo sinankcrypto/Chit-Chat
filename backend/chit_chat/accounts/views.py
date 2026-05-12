@@ -9,7 +9,7 @@ from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.conf import settings    
 
-from .serializers import RegisterSerializer, VerifyOTPSerializer, LoginSerializer, UserSearchSerializer
+from .serializers import RegisterSerializer, VerifyOTPSerializer, LoginSerializer, UserSerializer
 from .repository.emailOTP_repository import EmailOTPRepository
 from .utils import send_otp_email
 
@@ -74,8 +74,11 @@ class LoginView(APIView):
         refresh = RefreshToken.for_user(user)
         access_token = refresh.access_token
 
-        response = Response(
-            {"message": "Login successful", "user": user.username},
+        response =  Response(
+            {
+                "message": "Login successful",
+                "user": UserSerializer(user).data
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -168,10 +171,11 @@ class UserSearchView(APIView):
 
         users = User.objects.filter(
             Q(username__icontains=query) |
-            Q(email__icontains=query)
+            Q(email__icontains=query),
+            is_active=True
         ).exclude(
             id=request.user.id
         )[:10]  # limit results
 
-        serializer = UserSearchSerializer(users, many=True)
+        serializer = UserSerializer(users, many=True)
         return Response(serializer.data)

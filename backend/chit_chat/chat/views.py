@@ -4,6 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 import mimetypes
 
 from .models import ChatRoom, Message, ChatFile
@@ -24,25 +26,38 @@ class ChatRoomView(APIView):
         serializer = ChatRoomSerializer(
             rooms,
             many=True,
-            context={"request": request}
+            context={"user": request.user}
         )
         return Response(serializer.data)
 
     def post(self, request):
         serializer = ChatRoomSerializer(
             data=request.data,
-            context={"request": request}
+            context={"user": request.user}
         )
         serializer.is_valid(raise_exception=True)
         room = serializer.save()
 
-        return Response(
-            ChatRoomSerializer(
-                room,
-                context={"request": request}
-            ).data,
-            status=status.HTTP_201_CREATED
-        )
+        room_data = ChatRoomSerializer(
+            room,
+            context={"user": request.user}
+        ).data
+
+        channel_layer = get_channel_layer()
+
+        is_existing = serializer.context.get("existing", False)
+
+        if not is_existing:
+            for user in room.participants.all():
+                async_to_sync(channel_layer.group_send)(
+                    f"user_{user.id}",
+                    {
+                        "type": "room_created_event",
+                        "room": room_data
+                    }
+                )
+
+        return Response(room_data, status=status.HTTP_201_CREATED)
 
 class RoomMessagesView(APIView):
     permission_classes = [IsAuthenticated]
@@ -97,7 +112,14 @@ class AddUsersToGroupView(APIView):
 
         user_ids = request.data.get("users", [])
 
-        users_to_add = User.objects.filter(id__in=user_ids)
+        existing_ids = room.participants.values_list("id", flat=True)
+
+        users_to_add = User.objects.filter(
+            id__in=user_ids,
+            is_active=True
+        ).exclude(
+            id__in=existing_ids
+        )
 
         room.participants.add(*users_to_add)
 

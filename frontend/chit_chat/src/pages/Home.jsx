@@ -7,35 +7,19 @@ import API from "../services/api";
 import { usePresence } from "../context/PresenceContext";
 import { useNotifications } from "../context/NotificationContext";
 import { useTabVisibility } from "../hooks/useTabVisibility";
+import { useChat } from "../context/ChatContext";
 
 function Home() {
-  const { selectedChat, setSelectedChat } = useNotifications();
-  const [rooms, setRooms] = useState([]);
+  const { rooms, selectedChat, openChat } = useChat();
   const { onlineUsers } = usePresence();
-
-  const fetchRooms = async () => {
-    try {
-      const res = await API.get("/chat/rooms/");
-      setRooms(res.data);
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  useEffect(() => {
-    fetchRooms();
-  }, []);
 
   const handleSelectChat = async (room) => {
     setSelectedChat(room);
-
-    // refetch rooms to update unread_count
-    await fetchRooms();
   };
 
-    useEffect(() => {
-      console.log("online users updated:", onlineUsers);
-    }, [onlineUsers]);
+  useEffect(() => {
+    console.log("online users updated:", onlineUsers);
+  }, [onlineUsers]);
 
 
   return (
@@ -43,13 +27,10 @@ function Home() {
       <Sidebar
         rooms={rooms}
         selectedChat={selectedChat}
-        onSelectChat={handleSelectChat}
-        refreshRooms={fetchRooms}
+        onSelectChat={openChat}
       />
       <ChatWindow
        selectedChat={selectedChat}
-       setSelectedChat={setSelectedChat}
-       refreshRooms={fetchRooms} 
       />
     </div>
   );

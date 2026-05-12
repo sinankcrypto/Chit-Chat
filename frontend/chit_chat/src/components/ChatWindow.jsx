@@ -6,10 +6,12 @@ import { usePresence } from "../context/PresenceContext";
 import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
 import { Bell } from "lucide-react"
+import React from "react";
+import { useChat } from "../context/ChatContext";
 
 const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 
-function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
+function ChatWindow({ selectedChat }) {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const socketRef = useRef(null);
@@ -36,13 +38,17 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
 
   const { user } = useAuth()
 
-  const currentUserUsername = user;
+  const currentUserUsername = user.username;
+
+  const { closeChat } = useChat();
 
   const otherUser = selectedChat?.participants?.find(
     (p) => p.username !== currentUserUsername
   );
 
   const isOnline = onlineUsers.has(otherUser?.id);
+
+  const emojiRef = useRef(null);
 
   // Fetch old messages
   useEffect(() => {
@@ -89,9 +95,6 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
           room_id: selectedChat.id,
         })
       );
-
-      // refresh sidebar data
-      await refreshRooms?.();
     };
 
     socketRef.current.onclose = () => console.log("Chat disconnected");
@@ -125,6 +128,20 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
 
   }, [messages, firstUnreadId]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if ( emojiRef.current && !emojiRef.current.contains(event.target)) {
+        setShowEmoji(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   const handleSendMessage = async () => {
     if (!newMessage && !file) return;
 
@@ -157,6 +174,7 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
           file_id: file_id,
         })
       );
+      console.log("message sent")
 
       setNewMessage("");
       setFile(null);
@@ -321,7 +339,7 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
 
         {/* Close chat */}
         <button
-          onClick={() => setSelectedChat(null)} // or setSelectedChat(null) if parent controls it
+          onClick={closeChat} 
           className="text-gray-400 hover:text-white text-lg"
         >
           ✕
@@ -333,7 +351,7 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((msg, index) => {
           const sender = msg.sender;
-          const isOwn = msg.is_me? msg.is_me: sender==currentUserUsername;
+          const isOwn = msg.is_me ?? (sender === currentUserUsername);
           const fileUrl = msg.file_url
           ? `${import.meta.env.VITE_API_BASE_URL}${msg.file_url}`
           : null;
@@ -341,7 +359,7 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
           const isFirstUnread = msg.id === firstUnreadId;
 
           return (
-            <>
+            <React.Fragment key={msg.id}>
               {isFirstUnread && (
                 <div className="flex justify-center my-3">
                   <div className="bg-red-500 text-white text-xs px-3 py-1 rounded-full">
@@ -438,21 +456,11 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
                   </p>
                 </div>
               </div>
-            </>
+            </React.Fragment>
           );
         })}
         <div ref={messagesEndRef} />
       </div>
-
-      {showEmoji && (
-        <div className="absolute bottom-20">
-          <EmojiPicker
-            onEmojiClick={(emojiData) =>
-              setNewMessage((prev) => prev + emojiData.emoji)
-            }
-          />
-        </div>
-      )}
 
       {file && (
         <div className="px-4 py-2 border-t border-gray-700 bg-gray-850 flex items-center gap-3">
@@ -493,13 +501,27 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
       {/* Input */}
       <div className="border-t border-gray-700 p-3 flex items-center gap-2">
 
-        {/* Emoji Button */}
-        <button
-          onClick={() => setShowEmoji(!showEmoji)}
-          className="text-xl"
-        >
-          😀
-        </button>
+        <div ref={emojiRef} className="relative">
+
+          {showEmoji && (
+            <div className="absolute bottom-20">
+              <EmojiPicker
+                onEmojiClick={(emojiData) =>
+                  setNewMessage((prev) => prev + emojiData.emoji)
+                }
+              />
+            </div>
+          )}
+
+          {/* Emoji Button */}
+          <button
+            onClick={() => setShowEmoji(prev => !prev)}
+            className="text-xl"
+          >
+            😀
+          </button>
+
+        </div>
 
         {/* File Upload */}
         <label className="cursor-pointer text-xl">
@@ -549,7 +571,6 @@ function ChatWindow({ selectedChat, setSelectedChat, refreshRooms }) {
         <GroupInfoModal
           room={selectedChat}
           onClose={() => setShowGroupInfo(false)}
-          refreshRooms={refreshRooms}
         />
       )}
 

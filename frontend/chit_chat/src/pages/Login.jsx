@@ -7,6 +7,8 @@ import { useAuth } from "../context/AuthContext";
 function Login() {
   const navigate = useNavigate();
 
+  const [ loading, setLoading] = useState(false)
+
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -23,15 +25,18 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true)
     try {
       const res = await API.post("/auth/login/", formData);
       login(res.data.user)
-
+      
       toast.success("Login successful!");
       navigate("/chat");
     } catch (error) {
       toast.error("Invalid credentials");
       console.log(error);
+    } finally{
+      setLoading(false)
     }
   };
 
@@ -61,9 +66,18 @@ function Login() {
 
           <button
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 p-3 rounded text-white font-semibold"
+            disabled={loading}
+            className={`w-full p-3 rounded text-white font-semibold flex items-center justify-center gap-2
+              ${loading 
+                ? "bg-indigo-400 cursor-not-allowed opacity-70" 
+                : "bg-indigo-600 hover:bg-indigo-700"}
+            `}
           >
-            Login
+            {loading && (
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            )}
+            
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
