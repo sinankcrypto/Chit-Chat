@@ -7,7 +7,7 @@ import API from "../services/api";
 import { usePresence } from "../context/PresenceContext";
 import { useNotifications } from "../context/NotificationContext";
 import { useTabVisibility } from "../hooks/useTabVisibility";
-import { useChat } from "../context/chatContext";
+import { useChat } from "../context/ChatContext";
 
 function Home() {
   const { rooms, selectedChat, openChat } = useChat();

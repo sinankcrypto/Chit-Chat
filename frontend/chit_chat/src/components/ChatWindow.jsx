@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNotifications } from "../context/NotificationContext";
 import { Bell } from "lucide-react"
 import React from "react";
-import { useChat } from "../context/chatContext";
+import { useChat } from "../context/ChatContext";
 
 const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 

@@ -5,7 +5,7 @@ import { useTabVisibility } from "../hooks/useTabVisibility";
 import { showPushNotification } from "../utils/showPushNotification";
 import { useAuth } from "./AuthContext";
 import { useSocket } from "./SocketContext";
-import { useChat } from "./chatContext";
+import { useChat } from "./ChatContext";
 import { useNavigate } from "react-router-dom"
 
 const NotificationContext = createContext();
