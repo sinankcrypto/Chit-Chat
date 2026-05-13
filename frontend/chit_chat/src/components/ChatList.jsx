@@ -14,6 +14,42 @@ function ChatList({ rooms, onSelectChat, selectedChat  }) {
   const currentUser = user
   const { onlineUsers } = usePresence();
 
+  const getMessagePreview = (message) => {
+    if (!message) {
+      return "No messages yet";
+    }
+
+    const prefix =
+      message.sender === currentUser.username
+        ? "You: "
+        : `${message.sender}: `;
+
+    if (message.message_type === "text") {
+      return `${prefix}${message.content}`;
+    }
+
+    if (message.message_type === "mixed") {
+      return `${prefix}📎 ${message.content}`;
+    }
+
+    if (message.message_type === "file") {
+      switch (message.file_type) {
+        case "image":
+          return `${prefix}🖼️ Photo`;
+
+        case "video":
+          return `${prefix}🎥 Video`;
+
+        case "audio":
+          return `${prefix}🎵 Audio`;
+
+        default:
+          return `${prefix}📎 File`;
+      }
+    }
+
+    return prefix;
+  };
 
   return (
     <div className="mt-2 space-y-1 overflow-y-auto flex-1">
@@ -58,11 +94,7 @@ function ChatList({ rooms, onSelectChat, selectedChat  }) {
             {/* Bottom row */}
             <div className="flex justify-between items-center mt-1">
               <p className="text-sm text-gray-400 truncate">
-                {room.last_message
-                  ? room.last_message.sender === currentUser
-                  ? `You: ${room.last_message.content}`
-                  : `${room.last_message.sender}: ${room.last_message.content}`
-                  : "No messages yet"}
+                {getMessagePreview(room.last_message)}0
               </p>
 
               {room.unread_count > 0 && (
