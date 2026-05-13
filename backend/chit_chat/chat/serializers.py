@@ -95,7 +95,12 @@ class ChatRoomSerializer(serializers.ModelSerializer):
             return {
                 "content": message.content,
                 "timestamp": message.timestamp.isoformat(),
-                "sender": message.sender.username
+                "sender": message.sender.username,
+                "message_type": message.message_type,
+                "file_type": (
+                    message.attachment.file_type
+                    if message.attachment else None
+                )
             }
         return None
 
