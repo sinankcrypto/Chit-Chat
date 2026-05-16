@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import mimetypes
+import cloudinary.uploader
 
 from .models import ChatRoom, Message, ChatFile
 from .serializers import ChatRoomSerializer, MessageSerializer
@@ -164,27 +165,46 @@ class UploadChatFileView(APIView):
                 {"error": "No file uploaded"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        from utils.constants import ALLOWED_MIME_TYPES, MAX_FILE_SIZE
+        
+        file_type = file.content_type
 
-        file_type, _ = mimetypes.guess_type(file.name)
+        if file_type not in ALLOWED_MIME_TYPES:
+            return Response(
+                {
+                    "error": "Unsupported file type"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        if file_type and file_type.startswith("image"):
-            file_category  = "image"
-        elif file_type and file_type.startswith("video"):
-            file_category  = "video"
-        else:
-            file_category  = "file"
+        if file.size > MAX_FILE_SIZE:
+            return Response(
+                {
+                    "error": "File size exceeds 20 MB"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        upload_result = cloudinary.uploader.upload(
+            file,
+            folder="chat_files",
+            resource_type="auto"
+        )
 
         chat_file = ChatFile.objects.create(
-            file=file,
+            file_url=upload_result["secure_url"],
+            public_id=upload_result["public_id"],
             uploaded_by=request.user,
-            file_type=file_category,
+            file_type=file_type,
+            file_name=file.name,
             size=file.size
         )
 
         return Response(
             {
                 "file_id": chat_file.id,
-                "file_url": chat_file.file.url,
+                "file_url": chat_file.file_url,
                 "file_type": chat_file.file_type,
             },
             status=status.HTTP_201_CREATED
