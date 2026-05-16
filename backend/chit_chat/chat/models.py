@@ -43,12 +43,15 @@ class ChatRoom(models.Model):
         
 class ChatFile(models.Model):
 
-    file = models.FileField(upload_to="chat_files/")
+    file_url = models.URLField()
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     file_type = models.CharField(max_length=20)
+    file_name = models.CharField(max_length=255)
     size = models.IntegerField()
+
+    public_id = models.CharField(max_length=255, blank=True, null=True)
 
 class Message(models.Model):
     MESSAGE_TYPE_CHOICES = (

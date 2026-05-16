@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import ChatRoom, Message
+import logging
 
 User = get_user_model()
 
@@ -116,6 +117,7 @@ class MessageSerializer(serializers.ModelSerializer):
     sender = serializers.StringRelatedField()
     file_url = serializers.SerializerMethodField()
     file_type = serializers.SerializerMethodField()
+    file_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
@@ -127,22 +129,25 @@ class MessageSerializer(serializers.ModelSerializer):
             "file_url",
             "attachment",
             "file_type",
+            "file_name",
             "read_by",
             "timestamp"
         ]
 
     def get_file_url(self, obj):
-        if obj.attachment and obj.attachment.file:
-            url = obj.attachment.file.url
-
-            return url
+        if obj.attachment:
+            return obj.attachment.file_url
 
         return None     
 
     def get_file_type(self, obj):
-        if obj.attachment and obj.attachment.file:
-            file_type = obj.attachment.file_type
-
-            return file_type
+        if obj.attachment:
+            return obj.attachment.file_type
 
         return None     
+    
+    def get_file_name(self, obj):
+        if obj.attachment:
+            return obj.attachment.file_name
+        
+        return None
