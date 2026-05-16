@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, use } from "react";
 import API from "../services/api";
 import GroupInfoModal from "./GroupInfoModal";
 import EmojiPicker from "emoji-picker-react";
@@ -8,6 +8,8 @@ import { useNotifications } from "../context/NotificationContext";
 import { Bell } from "lucide-react"
 import React from "react";
 import { useChat } from "../context/ChatContext";
+import { getRoomDisplayName } from "../utils/chatHelpers";
+import toast from "react-hot-toast";
 
 const WS_URL = import.meta.env.VITE_WS_BASE_URL; 
 
@@ -50,10 +52,13 @@ function ChatWindow({ selectedChat }) {
 
   const emojiRef = useRef(null);
 
+  const [roomName, setRoomName] = useState(null)
+  const [sending, setSending] = useState(false);
+
   // Fetch old messages
   useEffect(() => {
     if (!selectedChat) return;
-
+    setRoomName(getRoomDisplayName(selectedChat, user))
     const fetchMessages = async () => {
       try {
         const res = await API.get(
@@ -143,7 +148,11 @@ function ChatWindow({ selectedChat }) {
   }, []);
 
   const handleSendMessage = async () => {
-    if (!newMessage && !file) return;
+    if (!newMessage.trim() && !file) return;
+
+    if (sending) return;
+
+    setSending(true);
 
     try {
       let file_id = null;
@@ -153,19 +162,27 @@ function ChatWindow({ selectedChat }) {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("room", selectedChat.id);
-
-        const res = await API.post(`/chat/rooms/${selectedChat.id}/upload/`, formData, {
+        try{
+          const res = await API.post(`/chat/rooms/${selectedChat.id}/upload/`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
 
-          onUploadProgress: (progressEvent) => {
-            const percent = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            setUploadProgress(percent);
-          },
-        });
+            onUploadProgress: (progressEvent) => {
+              const percent = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              setUploadProgress(percent);
+            },
+          });
 
-        file_id = res.data.file_id
+          file_id = res.data.file_id
+        } catch (err) {
+          toast.error(
+            err.response?.data?.error || "File upload failed"
+          );
+
+          setSending(false);
+          return;
+        } 
       }
 
       socketRef.current.send(
@@ -181,6 +198,8 @@ function ChatWindow({ selectedChat }) {
       setUploadProgress(0);
     } catch (err) {
       console.error(err);
+    } finally {
+      setSending(false);
     }
   };
 
@@ -233,6 +252,29 @@ function ChatWindow({ selectedChat }) {
       console.log(err);
     } finally {
       setLoadingOlder(false);
+    }
+  };
+
+  const downloadFile = async (url, filename = "file") => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+
+      document.body.appendChild(link);
+      link.click();
+
+      link.remove();
+
+      window.URL.revokeObjectURL(blobUrl);
+
+    } catch (err) {
+      console.log(err);
     }
   };
 
@@ -319,8 +361,8 @@ function ChatWindow({ selectedChat }) {
       
       {/* Header */}
       <div className="flex justify-between items-center border-b border-gray-700 p-4">
-        <h2 className="text-xl font-semibold">
-          {selectedChat.display_name}
+        <h2 className="text-xl font-semibold text-gray-100">
+          {roomName}
         </h2>
         {selectedChat.room_type === "private" && (
           <p className="text-sm text-gray-400">
@@ -352,9 +394,7 @@ function ChatWindow({ selectedChat }) {
         {messages.map((msg, index) => {
           const sender = msg.sender;
           const isOwn = msg.is_me ?? (sender === currentUserUsername);
-          const fileUrl = msg.file_url
-          ? `${import.meta.env.VITE_API_BASE_URL}${msg.file_url}`
-          : null;
+          const fileUrl = msg.file_url? msg.file_url : null;
           const fileType = msg.file_type;
           const isFirstUnread = msg.id === firstUnreadId;
 
@@ -423,31 +463,32 @@ function ChatWindow({ selectedChat }) {
                         </audio>
                       )}
 
-                      {/* PDF */}
-                      {fileType === "application/pdf" && (
-                        <a
-                          href={fileUrl}
-                          target="_blank"
-                          className="block mt-2 text-blue-400 underline"
-                        >
-                          📄 View PDF
-                        </a>
-                      )}
-
                       {/* Other Files */}
-                      {!fileType?.startsWith("image") &&
-                        !fileType?.startsWith("video") &&
-                        !fileType?.startsWith("audio") &&
-                        fileType !== "application/pdf" && (
+                      {!fileType?.startsWith("image/") &&
+                       !fileType?.startsWith("video/") &&
+                       !fileType?.startsWith("audio/") && (
+                        <div className="mt-2 flex items-center gap-3">
+
                           <a
                             href={fileUrl}
                             target="_blank"
-                            download
-                            className="block mt-2 text-blue-400 underline"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 underline"
                           >
-                            📎 Download File
+                            📄 {msg.file_name || "Open File"}
                           </a>
-                        )}
+
+                          <button
+                            onClick={() =>
+                              downloadFile(fileUrl, msg.file_name)
+                            }
+                            className="text-green-400 underline"
+                          >
+                            ⬇
+                          </button>
+
+                        </div>
+                      )}
                     </>
                   )}
 
@@ -496,6 +537,15 @@ function ChatWindow({ selectedChat }) {
               style={{ width: `${uploadProgress}%` }}
             />
           </div>
+        </div>
+      )}
+
+      {sending && uploadProgress > 0 && (
+        <div className="w-full bg-gray-700 rounded-full h-2 mt-2 overflow-hidden">
+          <div
+            className="bg-indigo-500 h-full transition-all duration-200"
+            style={{ width: `${uploadProgress}%` }}
+          />
         </div>
       )}
       {/* Input */}
@@ -561,9 +611,17 @@ function ChatWindow({ selectedChat }) {
         {/* Send Button */}
         <button
           onClick={handleSendMessage}
-          className="bg-indigo-600 px-4 py-2 rounded"
+          disabled={sending}
+          className={`
+            px-4 py-2 rounded-lg text-white transition
+            ${
+              sending
+                ? "bg-indigo-400 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700"
+            }
+          `}
         >
-          Send
+          {sending ? "Sending..." : "Send"}
         </button>
 
       </div>

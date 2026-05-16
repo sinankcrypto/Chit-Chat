@@ -94,7 +94,7 @@ function ChatList({ rooms, onSelectChat, selectedChat  }) {
             {/* Bottom row */}
             <div className="flex justify-between items-center mt-1">
               <p className="text-sm text-gray-400 truncate">
-                {getMessagePreview(room.last_message)}0
+                {getMessagePreview(room.last_message)}
               </p>
 
               {room.unread_count > 0 && (
