@@ -47,7 +47,7 @@ class ChatFile(models.Model):
     uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
-    file_type = models.CharField(max_length=20)
+    file_type = models.CharField(max_length=100)
     file_name = models.CharField(max_length=255)
     size = models.IntegerField()
 
