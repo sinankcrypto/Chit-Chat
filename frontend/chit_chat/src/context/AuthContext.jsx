@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }) => {
       await API.post("/auth/logout/");
     } catch (err) {
       console.log(err);
+      toast.error("Error logging please try again after some time")
     }
 
     localStorage.removeItem("user");
